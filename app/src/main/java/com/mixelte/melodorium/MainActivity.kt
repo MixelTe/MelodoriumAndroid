@@ -15,10 +15,15 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -44,6 +49,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val navController = rememberNavController()
             val navigate = {route: Any -> navController.navigate(route)}
+            MusicData.MusicDataLoader()
             MelodoriumTheme {
                 NavHost(navController, Routes.MusicList) {
                     composable<Routes.MusicList> {
@@ -61,10 +67,28 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Layout(route: Any, navigate: (route: Any) -> Unit, page: @Composable () -> Unit) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.primary,
+                ),
+                title = {
+                    Text(
+                        when (route) {
+                            Routes.MusicList -> "Music"
+                            Routes.Playlist -> "Playlist"
+                            Routes.Settings -> "Settings"
+                            else -> ""
+                        })
+                }
+            )
+        },
         bottomBar = {
             NavigationBar {
                 data class Route(val route: Any, val name: String, val iconFilled: ImageVector, val iconOutlined: ImageVector)
