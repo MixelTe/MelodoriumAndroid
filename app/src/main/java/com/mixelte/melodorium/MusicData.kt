@@ -1,5 +1,6 @@
 package com.mixelte.melodorium
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -34,18 +35,19 @@ object MusicData {
 
         LaunchedEffect(musicDatafile, musicRootFolder) {
             try {
-                val datafile = musicDatafile?.let { DocumentFile.fromSingleUri(context, it) } ?: return@LaunchedEffect
+                val datafile = musicDatafile?.let { DocumentFile.fromSingleUri(context, it) }
+                    ?: return@LaunchedEffect
                 val inputStream = context.contentResolver.openInputStream(datafile.uri)
                 val reader = BufferedReader(InputStreamReader(inputStream))
                 val lines = reader.readText()
                 val withUnknownKeys = Json { ignoreUnknownKeys = true }
                 val obj = withUnknownKeys.decodeFromString(MusicDatafile.serializer(), lines)
+                obj.Files.map { file -> file.RPath = file.RPath.replace("\\", "/") }
                 FolderAuthor = obj.FolderAuthor
 
                 val directory = musicRootFolder?.let { DocumentFile.fromTreeUri(context, it) }
-                Files = directory?.listFiles()?.map {
-                    MusicFile(it.name)
-                } ?: listOf()
+                    ?: return@LaunchedEffect
+                Files = scanDirectory(directory, obj).sortedBy { it.rpath }.toList()
             } catch (e: Exception) {
                 Error = e.toString()
                 return@LaunchedEffect
@@ -53,6 +55,34 @@ object MusicData {
             Error = null
         }
     }
+
+    private fun scanDirectory(
+        directory: DocumentFile,
+        datafile: MusicDatafile,
+        path: String = "",
+    ): MutableList<MusicFile> {
+        val files: MutableList<MusicFile> = mutableListOf()
+        directory.listFiles().map {
+            if (it.isDirectory) {
+                files.addAll(scanDirectory(it, datafile, path + it.uri.getFilename() + "/"))
+            } else {
+                val fname = it.uri.getFilename()
+                val rpath = path + fname
+                val data = datafile.Files.find { file -> file.RPath == rpath } ?: return@map
+                if (data.IsLoaded) {
+                    files.add(MusicFile(it, path.trimEnd('/'), fname, data))
+                }
+            }
+        }
+        return files
+    }
+}
+
+private fun Uri.getFilename(): String {
+    val path = this.path ?: return ""
+    val cut = path.lastIndexOf('/')
+    if (cut != -1) return path.substring(cut + 1)
+    return path
 }
 
 @Serializable
@@ -61,9 +91,10 @@ data class MusicDatafile(
     var FolderAuthor: Map<String, String>,
     var Files: List<MusicFileData>,
 )
+
 @Serializable
-data class MusicFileData (
-    val RPath: String,
+data class MusicFileData(
+    var RPath: String,
     val IsLoaded: Boolean,
     val Mood: MusicMood,
     val Like: MusicLike,
@@ -73,49 +104,72 @@ data class MusicFileData (
     val Tag: String,
 )
 
-data class MusicFile(val name: String?) {
-    val Path = ""
-    val Mood = MusicMood.Energistic
-    val Like = MusicLike.Good
-    val Lang = MusicLang.An
-    val Emo = MusicEmo.Neutral
-    val Hidden = false
-    val Tag = ""
+class MusicFile(
+    val file: DocumentFile,
+    val directory: String,
+    val fname: String,
+    data: MusicFileData,
+) {
+    val name: String
+    val author: String
+    val rpath: String = "$directory/$fname"
+    val ext: String
+    val mood = data.Mood
+    val like = data.Like
+    val lang = data.Lang
+    val emo = data.Emo
+    val hidden = data.Hidden
+    val tag = data.Tag
 
-    val Tags: String
+    init {
+        val exti = fname.lastIndexOf(".")
+        val sname = (if (exti >= 0) fname.substring(0, exti) else fname)
+        ext = if (exti >= 0) fname.substring(exti + 1) else fname
+        if ("_-_" in sname)
+        {
+            val parts = sname.split("_-_")
+            author = parts[0].replace("_", " ")
+            name = parts[1].replace("_", " ")
+        }
+        else {
+            author = ""
+            name = sname.replace("_", " ")
+        }
+    }
+
+    val tags: String
         get() {
             var tags = ""
             tags += " ["
-            tags += Mood.name.substring(0, 2)
-            if (Emo == MusicEmo.Happy) tags += "+"
-            else if (Emo == MusicEmo.Sad) tags += "-"
+            tags += mood.name.substring(0, 2)
+            if (emo == MusicEmo.Happy) tags += "+"
+            else if (emo == MusicEmo.Sad) tags += "-"
             tags += ";"
-            tags += Like.name.substring(0, 2) + ";"
-            tags += Lang.name.substring(0, 2)
-            if (Tag != "")
-                tags += "|" + Tag
+            tags += like.name.substring(0, 2) + ";"
+            tags += lang.name.substring(0, 2)
+            if (tag != "")
+                tags += "|$tag"
             tags += "]"
             return tags
         }
 }
 
-enum class MusicMood
-{
+enum class MusicMood {
     Rock,
     Energistic,
     Cheerful,
     Calm,
     Sleep,
 }
-enum class MusicLike
-{
+
+enum class MusicLike {
     Best,
     Like,
     Good,
     Normal,
 }
-enum class MusicLang
-{
+
+enum class MusicLang {
     No,
     Ru,
     An,
@@ -125,8 +179,8 @@ enum class MusicLang
     It,
     As,
 }
-enum class MusicEmo
-{
+
+enum class MusicEmo {
     Happy,
     Neutral,
     Sad,
