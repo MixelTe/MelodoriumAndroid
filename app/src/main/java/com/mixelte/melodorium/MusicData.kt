@@ -3,29 +3,26 @@ package com.mixelte.melodorium
 import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.documentfile.provider.DocumentFile
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
 object MusicData {
-    var Files: List<MusicFile> = listOf()
-        set(value) {
-            field = value
-            FilesState.value = value
-        }
     var FolderAuthor: Map<String, String> = mapOf()
-    var Error: String? = null
-        set(value) {
-            field = value
-            ErrorState.value = value
-        }
+    var Files by mutableStateOf(listOf<MusicFile>())
+    var Error by mutableStateOf<String?>(null)
+    var IsLoading by mutableStateOf(false)
 
-    var FilesState = mutableStateOf(Files)
-    var ErrorState = mutableStateOf(Error)
+    private var curMusicDatafile = ""
+    private var curMusicRootFolder = ""
 
     @Composable
     fun MusicDataLoader() {
@@ -34,25 +31,37 @@ object MusicData {
         val context = LocalContext.current
 
         LaunchedEffect(musicDatafile, musicRootFolder) {
-            try {
-                val datafile = musicDatafile?.let { DocumentFile.fromSingleUri(context, it) }
-                    ?: return@LaunchedEffect
-                val inputStream = context.contentResolver.openInputStream(datafile.uri)
-                val reader = BufferedReader(InputStreamReader(inputStream))
-                val lines = reader.readText()
-                val withUnknownKeys = Json { ignoreUnknownKeys = true }
-                val obj = withUnknownKeys.decodeFromString(MusicDatafile.serializer(), lines)
-                obj.Files.map { file -> file.RPath = file.RPath.replace("\\", "/") }
-                FolderAuthor = obj.FolderAuthor
+            if (musicDatafile == null || musicRootFolder == null) return@LaunchedEffect
+            val newMusicDatafile = musicDatafile.toString()
+            val newMusicRootFolder = musicRootFolder.toString()
+            if (curMusicDatafile == newMusicDatafile && curMusicRootFolder == newMusicRootFolder) return@LaunchedEffect
+            curMusicDatafile = newMusicDatafile
+            curMusicRootFolder = newMusicRootFolder
+            withContext(Dispatchers.IO) {
+                try {
+                    Files = listOf()
+                    IsLoading = true
+                    val datafile = DocumentFile.fromSingleUri(context, musicDatafile)
+                        ?: return@withContext
+                    val inputStream = context.contentResolver.openInputStream(datafile.uri)
+                    val reader = BufferedReader(InputStreamReader(inputStream))
+                    val lines = reader.readText()
+                    val withUnknownKeys = Json { ignoreUnknownKeys = true }
+                    val obj = withUnknownKeys.decodeFromString(MusicDatafile.serializer(), lines)
+                    obj.Files.map { file -> file.RPath = file.RPath.replace("\\", "/") }
+                    FolderAuthor = obj.FolderAuthor
 
-                val directory = musicRootFolder?.let { DocumentFile.fromTreeUri(context, it) }
-                    ?: return@LaunchedEffect
-                Files = scanDirectory(directory, obj).sortedBy { it.rpath }.toList()
-            } catch (e: Exception) {
-                Error = e.toString()
-                return@LaunchedEffect
+                    val directory = DocumentFile.fromTreeUri(context, musicRootFolder)
+                        ?: return@withContext
+                    Files = scanDirectory(directory, obj).sortedBy { it.rpath }.toList()
+                } catch (e: Exception) {
+                    Error = e.toString()
+                    return@withContext
+                } finally {
+                    IsLoading = false
+                }
+                Error = null
             }
-            Error = null
         }
     }
 
@@ -112,6 +121,8 @@ class MusicFile(
 ) {
     val name: String
     val author: String
+    val nameNorm: String
+    val authorNorm: String
     val rpath: String = "$directory/$fname"
     val ext: String
     val mood = data.Mood
@@ -125,16 +136,16 @@ class MusicFile(
         val exti = fname.lastIndexOf(".")
         val sname = (if (exti >= 0) fname.substring(0, exti) else fname)
         ext = if (exti >= 0) fname.substring(exti + 1) else fname
-        if ("_-_" in sname)
-        {
+        if ("_-_" in sname) {
             val parts = sname.split("_-_")
             author = parts[0].replace("_", " ")
             name = parts[1].replace("_", " ")
-        }
-        else {
+        } else {
             author = ""
             name = sname.replace("_", " ")
         }
+        nameNorm = name.lowercase()
+        authorNorm = author.lowercase()
     }
 
     val tags: String
