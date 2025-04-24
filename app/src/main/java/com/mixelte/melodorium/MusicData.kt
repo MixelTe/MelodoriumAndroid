@@ -106,8 +106,8 @@ data class MusicFileData(
 
 class MusicFile(
     val file: DocumentFile,
-    val directory: String,
-    val fname: String,
+    directory: String,
+    fname: String,
     data: MusicFileData,
 ) {
     val name: String
