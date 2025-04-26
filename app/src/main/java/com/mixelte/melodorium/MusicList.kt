@@ -3,7 +3,6 @@ package com.mixelte.melodorium
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -25,22 +23,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.mixelte.melodorium.ui.theme.muted
-import kotlin.enums.EnumEntries
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.time.Duration.Companion.milliseconds
@@ -48,6 +43,7 @@ import kotlin.time.TimeSource
 
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
+@Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
 @Composable
 fun MusicList() {
     val haptics = LocalHapticFeedback.current
@@ -55,8 +51,6 @@ fun MusicList() {
     var selectedItems by remember { mutableStateOf(listOf<MusicFile>()) }
     var lastCheckTime by remember { mutableStateOf<TimeSource.Monotonic.ValueTimeMark?>(null) }
     var lastCheckItem by remember { mutableStateOf(Pair<MusicFile?, MusicFile?>(null, null)) }
-    val scope = rememberCoroutineScope()
-    val filter = remember { MusicDataFilter(scope) }
 
     Column(
         modifier = Modifier.padding(5.dp)
@@ -76,53 +70,57 @@ fun MusicList() {
                 )
                 Text("Loading files")
             }
-        OutlinedTextField(
-            filter.author,
-            { filter.author = it },
-            label = { Text("Author") },
-            maxLines = 1,
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            filter.name,
-            { filter.name = it },
-            label = { Text("Name") },
-            maxLines = 1,
-            modifier = Modifier.fillMaxWidth()
-        )
 
-        @Composable
-        fun <T> FilterDropdown(all: List<T>, cur: MutableList<T>, name: String) {
-            SelectableDropdownMenu(all,
-                { it in cur },
-                { it, selected -> if (selected) cur.add(it) else cur.remove(it) },
-                { it.toString() }) {
-                Text(
-                    when (cur.size) {
-                        all.size, 0 -> "All $name"
-                        else -> cur.joinToString(", ")
-                    }
-                )
+        MusicDataFilter.Updater()
+        ExpandableBox({ (if (it) "" else MusicDataFilter.title).ifBlank { "Filter" } }) {
+            OutlinedTextField(
+                MusicDataFilter.author,
+                { MusicDataFilter.author = it },
+                label = { Text("Author") },
+                maxLines = 1,
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                MusicDataFilter.name,
+                { MusicDataFilter.name = it },
+                label = { Text("Name") },
+                maxLines = 1,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            @Composable
+            fun <T> FilterDropdown(all: List<T>, cur: MutableList<T>, name: String) {
+                SelectableDropdownMenu(all,
+                    { it in cur },
+                    { it, selected -> if (selected) cur.add(it) else cur.remove(it) },
+                    { it.toString() }) {
+                    Text(
+                        when (cur.size) {
+                            all.size, 0 -> "All $name"
+                            else -> cur.joinToString(", ")
+                        }
+                    )
+                }
             }
+            FilterDropdown(MusicMood.entries, MusicDataFilter.mood, "mood")
+            FilterDropdown(MusicLike.entries, MusicDataFilter.like, "like")
+            FilterDropdown(MusicLang.entries, MusicDataFilter.lang, "lang")
+            FilterDropdown(MusicEmo.entries, MusicDataFilter.emo, "emo")
         }
-        FilterDropdown(MusicMood.entries, filter.mood, "mood")
-        FilterDropdown(MusicLike.entries, filter.like, "like")
-        FilterDropdown(MusicLang.entries, filter.lang, "lang")
-        FilterDropdown(MusicEmo.entries, filter.emo, "emo")
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            val allSelected = selectedItems.size == filter.files.size
+            val allSelected = selectedItems.size == MusicDataFilter.files.size
             TextButton({
-                selectedItems = if (allSelected) listOf() else filter.files
+                selectedItems = if (allSelected) listOf() else MusicDataFilter.files
             }) { Text(if (allSelected) "Unselect all" else "Select all") }
-            TextButton({ filter.reset() }) { Text("Reset filter") }
+            TextButton({ MusicDataFilter.reset() }) { Text("Reset filter") }
         }
         MusicData.Error?.let { Text(it) }
         LazyColumn {
-            items(filter.files) { file ->
+            items(MusicDataFilter.files, { it.rpath }) { file ->
                 var offset by remember { mutableStateOf(Offset.Zero) }
                 var dropDownExpanded by remember { mutableStateOf(false) }
                 val (xDp, yDp) = with(density) {

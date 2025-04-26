@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,26 +44,27 @@ fun MusicRootFolder() {
     val scope = rememberCoroutineScope()
     var folder = getMusicRootFolder()
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        folder = it.data?.data.also {
+        folder = it.data?.data?.also { uri ->
             val contentResolver = context.contentResolver
 
             val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION or
                     Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            contentResolver.takePersistableUriPermission(it!!, takeFlags)
+            contentResolver.takePersistableUriPermission(uri, takeFlags)
         }
         scope.launch {
             context.dataStore.edit { preferences -> preferences[musicRootFolderKey] = folder.toString() }
         }
     }
     Column (
-        modifier = Modifier.clickable {
+        modifier = Modifier.fillMaxWidth().clickable {
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
             launcher.launch(intent)
         },
     ) {
         Text("Music root folder")
+        val path = folder.toString()
         Text(
-            text = folder?.toString() ?: "unselected",
+            text = if (path == "null") "unselected" else path,
             modifier = Modifier.padding(start = 10.dp)
         )
     }
@@ -84,19 +86,19 @@ fun MusicDatafile() {
     val scope = rememberCoroutineScope()
     var file = getMusicDatafile()
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        file = it.data?.data.also {
+        file = it.data?.data?.also {
             val contentResolver = context.contentResolver
 
             val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION or
                     Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            contentResolver.takePersistableUriPermission(it!!, takeFlags)
+            contentResolver.takePersistableUriPermission(it, takeFlags)
         }
         scope.launch {
             context.dataStore.edit { preferences -> preferences[musicDatafileKey] = file.toString() }
         }
     }
     Column (
-        modifier = Modifier.clickable {
+        modifier = Modifier.fillMaxWidth().clickable {
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
                 type = "application/json"
@@ -106,8 +108,9 @@ fun MusicDatafile() {
         },
     ) {
         Text("Music data file")
+        val path = file.toString()
         Text(
-            text = file?.toString() ?: "unselected",
+            text = if (path == "null") "unselected" else path,
             modifier = Modifier.padding(start = 10.dp)
         )
     }

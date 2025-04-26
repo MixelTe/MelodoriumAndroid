@@ -1,16 +1,14 @@
 package com.mixelte.melodorium
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.toMutableStateList
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 
-class MusicDataFilter(scope: CoroutineScope) {
+object MusicDataFilter {
     var author by mutableStateOf("")
     var name by mutableStateOf("")
     var mood = MusicMood.entries.toMutableStateList()
@@ -19,14 +17,13 @@ class MusicDataFilter(scope: CoroutineScope) {
     var emo = MusicEmo.entries.toMutableStateList()
 
     var files by mutableStateOf<List<MusicFile>>(listOf())
+    var title by mutableStateOf("")
 
-    init {
-        snapshotFlow { MusicData.Files }.onEach { updateFiles() }.launchIn(scope)
-        snapshotFlow { "$author$name" }.onEach { updateFiles() }.launchIn(scope)
-        snapshotFlow { mood.toList() }.onEach { updateFiles() }.launchIn(scope)
-        snapshotFlow { like.toList() }.onEach { updateFiles() }.launchIn(scope)
-        snapshotFlow { lang.toList() }.onEach { updateFiles() }.launchIn(scope)
-        snapshotFlow { emo.toList() }.onEach { updateFiles() }.launchIn(scope)
+    @Composable
+    fun Updater() {
+        LaunchedEffect(MusicData.Files, author, name, mood.toList(), like.toList(), lang.toList(), emo.toList()) {
+            updateFiles()
+        }
     }
 
     private fun updateFiles() {
@@ -40,14 +37,47 @@ class MusicDataFilter(scope: CoroutineScope) {
                     (lang.isEmpty() || it.lang in lang) &&
                     (emo.isEmpty() || it.emo in emo)
         }
+        title = buildTitle()
     }
 
     fun reset() {
         author = ""
         name = ""
-        mood = MusicMood.entries.toMutableStateList()
-        like = MusicLike.entries.toMutableStateList()
-        lang = MusicLang.entries.toMutableStateList()
-        emo = MusicEmo.entries.toMutableStateList()
+        mood.clear()
+        mood.addAll(MusicMood.entries)
+        like.clear()
+        like.addAll(MusicLike.entries)
+        lang.clear()
+        lang.addAll(MusicLang.entries)
+        emo.clear()
+        emo.addAll(MusicEmo.entries)
+    }
+
+    private fun buildTitle(): String {
+        var title = ""
+        if (author != "")
+            title += author.take(10)
+        if (name != "")
+            title += (if (title != "") " " else "") + name.take(10)
+
+        val tags = mutableStateListOf<String>()
+        fun <T : Enum<T>> tagToStr(allTags: List<T>, curTags: List<T>, k: Int, prefix: String) {
+            if (curTags.size != allTags.size) {
+                if (curTags.size < allTags.size - k)
+                    tags.add(prefix + curTags.joinToString("") { it.name.take(2) })
+                else
+                    tags.add(prefix + (allTags - curTags.toSet()).joinToString("") { "-${it.name.take(2)}" })
+            }
+        }
+        tagToStr(MusicMood.entries, mood, 2, "M:")
+        tagToStr(MusicLike.entries, like, 1, "L:")
+        tagToStr(MusicLang.entries, lang, 4, "N:")
+        tagToStr(MusicEmo.entries, emo, 1, "E:")
+
+        if (tags.isNotEmpty()) {
+            if (title != "") title += " "
+            title += tags.joinToString("; ")
+        }
+        return title
     }
 }

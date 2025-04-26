@@ -2,6 +2,7 @@ package com.mixelte.melodorium
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Column
@@ -26,6 +27,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -45,12 +47,16 @@ class Routes {
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
             val navController = rememberNavController()
             val navigate = {route: Any -> navController.navigate(route)}
             MusicData.MusicDataLoader()
             MelodoriumTheme {
+                enableEdgeToEdge(
+                    navigationBarStyle = SystemBarStyle.auto(
+                        MaterialTheme.colorScheme.primary.toArgb(),
+                        MaterialTheme.colorScheme.primary.toArgb()
+                    ))
                 NavHost(navController, Routes.MusicList) {
                     composable<Routes.MusicList> {
                         Layout(Routes.MusicList, navigate) { MusicList() }
