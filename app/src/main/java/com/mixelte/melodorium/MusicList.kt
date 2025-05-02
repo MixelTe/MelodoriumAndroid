@@ -144,7 +144,7 @@ fun MusicList() {
                                 val list = selectedItems.toMutableList()
                                 val select = prevItem2 in selectedItems
                                 for (i in min(thisI, anotherI)..max(thisI, anotherI)) {
-                                    val item = MusicData.Files[i];
+                                    val item = MusicData.Files[i]
                                     if (select) {
                                         if (item !in list)
                                             list.add(item)
@@ -153,7 +153,7 @@ fun MusicList() {
                                             list.remove(item)
                                     }
                                 }
-                                selectedItems = list;
+                                selectedItems = list
                             } else {
                                 selectedItems =
                                     if (selected) selectedItems.toMutableList()

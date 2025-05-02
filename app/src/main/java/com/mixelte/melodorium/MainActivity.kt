@@ -48,15 +48,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            enableEdgeToEdge(
+                navigationBarStyle = SystemBarStyle.light(
+                    MaterialTheme.colorScheme.primary.toArgb(),
+                    MaterialTheme.colorScheme.inversePrimary.toArgb()
+                )
+            )
             val navController = rememberNavController()
             val navigate = {route: Any -> navController.navigate(route)}
             MusicData.MusicDataLoader()
             MelodoriumTheme {
-                enableEdgeToEdge(
-                    navigationBarStyle = SystemBarStyle.auto(
-                        MaterialTheme.colorScheme.primary.toArgb(),
-                        MaterialTheme.colorScheme.primary.toArgb()
-                    ))
                 NavHost(navController, Routes.MusicList) {
                     composable<Routes.MusicList> {
                         Layout(Routes.MusicList, navigate) { MusicList() }
