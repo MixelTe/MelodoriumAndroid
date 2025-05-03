@@ -1,5 +1,6 @@
 package com.mixelte.melodorium
 
+import android.content.ComponentName
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -29,11 +30,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.media3.session.MediaController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.mixelte.melodorium.ui.theme.MelodoriumTheme
 import kotlinx.serialization.Serializable
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.MoreExecutors
 
 class Routes {
     @Serializable
@@ -71,6 +75,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val sessionToken = SessionToken(this, ComponentName(this, PlaybackService::class.java))
+        val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
+        controllerFuture.addListener(
+            {
+                Player.setMediaController(controllerFuture.get())
+            },
+            MoreExecutors.directExecutor()
+        )
     }
 }
 

@@ -1,6 +1,8 @@
 package com.mixelte.melodorium
 
+import android.content.Context
 import android.net.Uri
+import android.provider.DocumentsContract
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -14,6 +16,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.BufferedReader
 import java.io.InputStreamReader
+
 
 object MusicData {
     var FolderAuthor: Map<String, String> = mapOf()
@@ -48,12 +51,13 @@ object MusicData {
                     val lines = reader.readText()
                     val withUnknownKeys = Json { ignoreUnknownKeys = true }
                     val obj = withUnknownKeys.decodeFromString(MusicDatafile.serializer(), lines)
-                    obj.Files.map { file -> file.RPath = file.RPath.replace("\\", "/") }
+                    obj.Files.forEach { it.RPath = it.RPath.replace("\\", "/") }
                     FolderAuthor = obj.FolderAuthor
-
-                    val directory = DocumentFile.fromTreeUri(context, musicRootFolder)
-                        ?: return@withContext
-                    Files = scanDirectory(directory, obj).sortedBy { it.rpath }.toList()
+//                    Files = obj.Files
+//                        .filter { it.IsLoaded }
+//                        .map { MusicFile(it.apply { RPath = RPath.replace("\\", "/") }, buildDocumentUriUsingTree(musicRootFolder, documentId) }
+//                        .sortedBy { it.rpath }.toList()
+                    loadFiles(context, musicRootFolder, obj.Files)
                 } catch (e: Exception) {
                     Error = e.toString()
                     return@withContext
@@ -65,33 +69,52 @@ object MusicData {
         }
     }
 
-    private fun scanDirectory(
-        directory: DocumentFile,
-        datafile: MusicDatafile,
-        path: String = "",
-    ): MutableList<MusicFile> {
-        val files: MutableList<MusicFile> = mutableListOf()
-        directory.listFiles().map {
-            if (it.isDirectory) {
-                files.addAll(scanDirectory(it, datafile, path + it.uri.getFilename() + "/"))
-            } else {
-                val fname = it.uri.getFilename()
-                val rpath = path + fname
-                val data = datafile.Files.find { file -> file.RPath == rpath } ?: return@map
-                if (data.IsLoaded) {
-                    files.add(MusicFile(it, path.trimEnd('/'), fname, data))
+    private fun loadFiles(context: Context, rootUri: Uri, musicData: List<MusicFileData>) {
+        val files = mutableListOf<MusicFile>()
+        val contentResolver = context.contentResolver
+
+        val dirNodes = mutableListOf(
+            "" to DocumentsContract.buildChildDocumentsUriUsingTree(
+                rootUri,
+                DocumentsContract.getTreeDocumentId(rootUri)
+            )
+        )
+        val projection = arrayOf(
+            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            DocumentsContract.Document.COLUMN_MIME_TYPE
+        )
+        while (!dirNodes.isEmpty()) {
+            val (path, dirUri) = dirNodes.removeAt(0)
+            contentResolver.query(dirUri, projection, null, null, null)?.apply {
+                try {
+                    while (moveToNext()) {
+                        val docId = getString(0)
+                        val name = getString(1)
+                        val mime = getString(2)
+                        if (mime == DocumentsContract.Document.MIME_TYPE_DIR) {
+                            dirNodes.add("$path/$name" to DocumentsContract.buildChildDocumentsUriUsingTree(rootUri, docId))
+                        } else {
+                            val rpath = "$path/$name".trimStart('/')
+                            val data = musicData.find { it.RPath == rpath }
+                            data?.let {
+                                files.add(MusicFile(it, DocumentsContract.buildDocumentUriUsingTree(rootUri, docId)))
+                            }
+                        }
+                    }
+                } finally {
+                    close()
                 }
             }
         }
-        return files
+        Files = files
     }
 }
 
-private fun Uri.getFilename(): String {
-    val path = this.path ?: return ""
-    val cut = path.lastIndexOf('/')
-    if (cut != -1) return path.substring(cut + 1)
-    return path
+private fun String.getFilename(): String {
+    val cut = this.lastIndexOf('/')
+    if (cut != -1) return this.substring(cut + 1)
+    return this
 }
 
 @Serializable
@@ -114,16 +137,14 @@ data class MusicFileData(
 )
 
 class MusicFile(
-    val file: DocumentFile,
-    directory: String,
-    fname: String,
     data: MusicFileData,
+    val uri: Uri,
 ) {
     val name: String
     val author: String
     val nameNorm: String
     val authorNorm: String
-    val rpath: String = "$directory/$fname"
+    val rpath: String = data.RPath
     val ext: String
     val mood = data.Mood
     val like = data.Like
@@ -133,9 +154,10 @@ class MusicFile(
     val tag = data.Tag
 
     init {
+        val fname = rpath.getFilename()
         val exti = fname.lastIndexOf(".")
-        val sname = (if (exti >= 0) fname.substring(0, exti) else fname)
-        ext = if (exti >= 0) fname.substring(exti + 1) else fname
+        val sname = if (exti >= 0) fname.substring(0, exti) else fname
+        ext = if (exti >= 0) fname.substring(exti + 1) else ""
         if ("_-_" in sname) {
             val parts = sname.split("_-_")
             author = parts[0].replace("_", " ")

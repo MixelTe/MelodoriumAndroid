@@ -1,6 +1,5 @@
 package com.mixelte.melodorium
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,7 +9,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -26,8 +24,8 @@ import com.mixelte.melodorium.ui.theme.muted
 
 @Composable
 fun Playlist() {
-    val current by PlaylistData.current.collectAsState()
-    val playlist by PlaylistData.playlist.collectAsState()
+    val current by Player.current.collectAsState()
+    val playlist by Player.playlist.collectAsState()
 
     Column {
         Card (
@@ -63,7 +61,9 @@ fun Playlist() {
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                IconButton({}) {
+                IconButton({
+                    Player.play()
+                }) {
                     Icon(Icons.Filled.PlayArrow, contentDescription = "Play")
                 }
             }

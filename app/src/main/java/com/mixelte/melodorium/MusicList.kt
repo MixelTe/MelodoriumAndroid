@@ -111,11 +111,17 @@ fun MusicList() {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             val allSelected = selectedItems.size == MusicDataFilter.files.size
             TextButton({
                 selectedItems = if (allSelected) listOf() else MusicDataFilter.files
             }) { Text(if (allSelected) "Unselect all" else "Select all") }
+            Text(
+                if (selectedItems.isEmpty()) "${MusicDataFilter.files.size}"
+                else "${selectedItems.size}/${MusicDataFilter.files.size}",
+                style = MaterialTheme.typography.labelSmall,
+            )
             TextButton({ MusicDataFilter.reset() }) { Text("Reset filter") }
         }
         MusicData.Error?.let { Text(it) }
@@ -197,7 +203,7 @@ fun MusicList() {
                             DropdownMenuItem(
                                 text = { Text("Add to playlist") },
                                 onClick = {
-                                    PlaylistData.addTrack(file)
+                                    Player.addTrack(file)
                                     dropDownExpanded = false
                                 })
                             DropdownMenuItem(
@@ -205,7 +211,7 @@ fun MusicList() {
                                 enabled = selectedItems.isNotEmpty(),
                                 onClick = {
                                     selectedItems.forEach {
-                                        PlaylistData.addTrack(it)
+                                        Player.addTrack(it)
                                     }
                                     selectedItems = mutableListOf()
                                     dropDownExpanded = false
