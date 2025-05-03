@@ -19,8 +19,8 @@ import java.io.InputStreamReader
 
 
 object MusicData {
-    var FolderAuthor: Map<String, String> = mapOf()
     var Files by mutableStateOf(listOf<MusicFile>())
+    var Tags by mutableStateOf(listOf<String>())
     var Error by mutableStateOf<String?>(null)
     var IsLoading by mutableStateOf(false)
 
@@ -43,6 +43,7 @@ object MusicData {
             withContext(Dispatchers.IO) {
                 try {
                     Files = listOf()
+                    Tags = listOf()
                     IsLoading = true
                     val datafile = DocumentFile.fromSingleUri(context, musicDatafile)
                         ?: return@withContext
@@ -51,13 +52,15 @@ object MusicData {
                     val lines = reader.readText()
                     val withUnknownKeys = Json { ignoreUnknownKeys = true }
                     val obj = withUnknownKeys.decodeFromString(MusicDatafile.serializer(), lines)
-                    obj.Files.forEach { it.RPath = it.RPath.replace("\\", "/") }
-                    FolderAuthor = obj.FolderAuthor
-//                    Files = obj.Files
-//                        .filter { it.IsLoaded }
-//                        .map { MusicFile(it.apply { RPath = RPath.replace("\\", "/") }, buildDocumentUriUsingTree(musicRootFolder, documentId) }
-//                        .sortedBy { it.rpath }.toList()
+
+                    obj.Files.forEach {it.RPath = it.RPath.replace("\\", "/")}
+
                     loadFiles(context, musicRootFolder, obj.Files)
+
+                    val tags = mutableSetOf<String>()
+                    Files.forEach { it.tags.forEach { tags.add(it) } }
+                    tags.remove("")
+                    Tags = tags.toList()
                 } catch (e: Exception) {
                     Error = e.toString()
                     return@withContext
@@ -152,6 +155,7 @@ class MusicFile(
     val emo = data.Emo
     val hidden = data.Hidden
     val tag = data.Tag
+    val tags = data.Tag.split(";")
 
     init {
         val fname = rpath.getFilename()
@@ -170,7 +174,7 @@ class MusicFile(
         authorNorm = author.lowercase()
     }
 
-    val tags: String
+    val tagsLabel: String
         get() {
             var tags = ""
             tags += " ["

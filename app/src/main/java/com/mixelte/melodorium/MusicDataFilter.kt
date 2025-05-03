@@ -15,13 +15,23 @@ object MusicDataFilter {
     var like = MusicLike.entries.toMutableStateList()
     var lang = MusicLang.entries.toMutableStateList()
     var emo = MusicEmo.entries.toMutableStateList()
+    var tags = mutableStateListOf<String>()
 
     var files by mutableStateOf<List<MusicFile>>(listOf())
     var title by mutableStateOf("")
 
     @Composable
     fun Updater() {
-        LaunchedEffect(MusicData.Files, author, name, mood.toList(), like.toList(), lang.toList(), emo.toList()) {
+        LaunchedEffect(
+            MusicData.Files,
+            author,
+            name,
+            mood.toList(),
+            like.toList(),
+            lang.toList(),
+            emo.toList(),
+            tags.toList(),
+        ) {
             updateFiles()
         }
     }
@@ -35,7 +45,8 @@ object MusicDataFilter {
                     (mood.isEmpty() || it.mood in mood) &&
                     (like.isEmpty() || it.like in like) &&
                     (lang.isEmpty() || it.lang in lang) &&
-                    (emo.isEmpty() || it.emo in emo)
+                    (emo.isEmpty() || it.emo in emo) &&
+                    (tags.isEmpty() || it.tags.any { it in tags })
         }
         title = buildTitle()
     }
@@ -51,6 +62,7 @@ object MusicDataFilter {
         lang.addAll(MusicLang.entries)
         emo.clear()
         emo.addAll(MusicEmo.entries)
+        tags.clear()
     }
 
     private fun buildTitle(): String {
@@ -60,13 +72,16 @@ object MusicDataFilter {
         if (name != "")
             title += (if (title != "") " " else "") + name.take(10)
 
-        val tags = mutableStateListOf<String>()
+        val ftags = mutableStateListOf<String>()
         fun <T : Enum<T>> tagToStr(allTags: List<T>, curTags: List<T>, k: Int, prefix: String) {
             if (curTags.size != allTags.size) {
-                if (curTags.size < allTags.size - k)
-                    tags.add(prefix + curTags.joinToString("") { it.name.take(2) })
-                else
-                    tags.add(prefix + (allTags - curTags.toSet()).joinToString("") { "-${it.name.take(2)}" })
+                ftags.add(
+                    prefix +
+                        if (curTags.size < allTags.size - k)
+                            curTags.joinToString("") { it.name.take(2) }
+                        else
+                            (allTags - curTags.toSet()).joinToString("") { "-${it.name.take(2)}" }
+                )
             }
         }
         tagToStr(MusicMood.entries, mood, 2, "M:")
@@ -74,10 +89,12 @@ object MusicDataFilter {
         tagToStr(MusicLang.entries, lang, 4, "N:")
         tagToStr(MusicEmo.entries, emo, 1, "E:")
 
-        if (tags.isNotEmpty()) {
+        if (ftags.isNotEmpty()) {
             if (title != "") title += " "
-            title += tags.joinToString("; ")
+            title += ftags.joinToString("; ")
         }
+        if (title != "") title += " | "
+        title += tags.joinToString(";")
         return title
     }
 }
