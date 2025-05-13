@@ -2,29 +2,46 @@ package com.mixelte.melodorium
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.mixelte.melodorium.ui.theme.Tomato
 import com.mixelte.melodorium.ui.theme.muted
+import kotlinx.coroutines.launch
 
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
+@OptIn(
+    ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class,
+    ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class
+)
 @Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
 @Composable
 fun MusicList() {
@@ -104,47 +121,57 @@ fun MusicList() {
             )
             TextButton({ MusicDataFilter.reset() }) { Text("Reset filter") }
         }
-        MusicData.Error?.let { Text(it) }
-        mList.LazyColumn(
-            items = MusicDataFilter.files,
-            itemKey = { it.rpath },
-            dropdownItems = { file, closeDropdown ->
-                DropdownMenuItem(
-                    text = { Text("Add to playlist") },
-                    onClick = {
-                        Player.addTrack(file)
-                        closeDropdown()
-                    })
-                DropdownMenuItem(
-                    text = { Text("Add selected to playlist") },
-                    enabled = mList.selectedItems.isNotEmpty(),
-                    onClick = {
-                        mList.selectedItems.forEach {
-                            Player.addTrack(it)
-                        }
-                        mList.selectedItems = listOf()
-                        closeDropdown()
-                    })
-            },
-            colors = null
-        ) { file ->
-            Column {
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
+        MusicData.Error?.let { Text(it, color = Color.Tomato) }
+        val refreshScope = rememberCoroutineScope()
+        var refreshing by remember { mutableStateOf(false) }
+        val context = LocalContext.current
+        val state = rememberPullRefreshState(
+            refreshing,
+            { refreshScope.launch { MusicData.updateFiles(context) } }
+        )
+        Box(Modifier.pullRefresh(state)) {
+            mList.LazyColumn(
+                items = MusicDataFilter.files,
+                itemKey = { it.rpath },
+                dropdownItems = { file, closeDropdown ->
+                    DropdownMenuItem(
+                        text = { Text("Add to playlist") },
+                        onClick = {
+                            Player.addTrack(file)
+                            closeDropdown()
+                        })
+                    DropdownMenuItem(
+                        text = { Text("Add selected to playlist") },
+                        enabled = mList.selectedItems.isNotEmpty(),
+                        onClick = {
+                            mList.selectedItems.forEach {
+                                Player.addTrack(it)
+                            }
+                            mList.selectedItems = listOf()
+                            closeDropdown()
+                        })
+                },
+                colors = null
+            ) { file ->
+                Column {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            if (file.author != "") "${file.author}: ${file.name}" else file.name,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(file.tagsLabel)
+                    }
                     Text(
-                        if (file.author != "") "${file.author}: ${file.name}" else file.name,
-                        modifier = Modifier.weight(1f)
+                        text = file.rpath,
+                        modifier = Modifier.padding(start = 5.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onBackground.muted
                     )
-                    Text(file.tagsLabel)
                 }
-                Text(
-                    text = file.rpath,
-                    modifier = Modifier.padding(start = 5.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.muted
-                )
             }
+            PullRefreshIndicator(refreshing, state, Modifier.align(Alignment.TopCenter))
         }
     }
 }

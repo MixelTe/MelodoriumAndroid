@@ -11,3 +11,4 @@ val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
 val Color.muted get() = this.copy(alpha = 0.75f)
+val Color.Companion.Tomato get() = Color.hsl(9f, 1f, 0.64f)
