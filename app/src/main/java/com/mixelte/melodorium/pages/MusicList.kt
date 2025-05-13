@@ -122,12 +122,12 @@ fun MusicList() {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            val allSelected = mList.selectedItems.size == MusicDataFilter.files.size
+            val noSelected = mList.selectedItems.isEmpty()
             TextButton({
-                mList.selectedItems = if (allSelected) listOf() else MusicDataFilter.files
-            }) { Text(if (allSelected) "Unselect all" else "Select all") }
+                mList.selectedItems = if (noSelected) MusicDataFilter.files else listOf()
+            }) { Text(if (noSelected) "Select all" else "Unselect all") }
             Text(
-                if (mList.selectedItems.isEmpty()) "${MusicDataFilter.files.size}"
+                if (noSelected) "${MusicDataFilter.files.size}"
                 else "${mList.selectedItems.size}/${MusicDataFilter.files.size}",
                 style = MaterialTheme.typography.labelSmall,
             )
@@ -160,8 +160,17 @@ fun MusicList() {
                             mList.selectedItems = listOf()
                             closeDropdown()
                         })
+                    DropdownMenuItem(
+                        text = { Text("Add selected to playlist randomly") },
+                        enabled = mList.selectedItems.isNotEmpty(),
+                        onClick = {
+                            Player.addTracks(mList.selectedItems.shuffled())
+                            mList.selectedItems = listOf()
+                            closeDropdown()
+                        })
                 },
-                colors = null
+                colors = null,
+                {}
             ) { file ->
                 Column {
                     Row(

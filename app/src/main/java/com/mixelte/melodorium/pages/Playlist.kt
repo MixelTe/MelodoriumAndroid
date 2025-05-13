@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -100,12 +101,26 @@ fun Playlist() {
                     mList.selectedItems = listOf()
                     closeDropdown()
                 })
+            DropdownMenuItem(
+                text = { Text("Shuffle playlist") },
+                onClick = {
+                    Player.shuffle()
+                    closeDropdown()
+                })
+            DropdownMenuItem(
+                text = { Text("Shuffle selected") },
+                enabled = mList.selectedItems.size > 1,
+                onClick = {
+                    Player.shuffle(mList.selectedItems)
+                    closeDropdown()
+                })
         }, {
-            if (it != Player.current) return@LazyColumn null
-            CardDefaults.cardColors(
+            if (it == Player.current) CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
+            ) else null
+        }, {
+            Player.play(it)
         }) {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,

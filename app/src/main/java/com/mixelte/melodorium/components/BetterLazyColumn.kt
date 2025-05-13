@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,6 +43,7 @@ class BetterLazyColumn<T> {
         itemKey: (T) -> Any,
         dropdownItems: @Composable ((T, () -> Unit) -> Unit),
         colors: @Composable ((T) -> CardColors?)?,
+        onClick: (T) -> Any,
         item: @Composable ((T) -> Unit),
     ) {
         val haptics = LocalHapticFeedback.current
@@ -50,19 +52,30 @@ class BetterLazyColumn<T> {
         var lastCheckItem by remember { mutableStateOf(Pair<T?, T?>(null, null)) }
 
         LazyColumn {
-            items(items, itemKey) { file ->
+            items(items, itemKey) { listItem ->
                 var offset by remember { mutableStateOf(Offset.Zero) }
                 var dropDownExpanded by remember { mutableStateOf(false) }
                 val (xDp, yDp) = with(density) {
                     (offset.x.toDp()) to (offset.y.toDp())
                 }
-                val selected = file in selectedItems
+                val selected = listItem in selectedItems
                 Card(
                     shape = RoundedCornerShape(0.dp),
-                    colors = colors?.let { it(file) } ?: CardDefaults.cardColors(
+                    colors = colors?.let { it(listItem) } ?: CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surface,
                         contentColor = MaterialTheme.colorScheme.onSurface,
                     ),
+                    modifier = Modifier
+                        .pointerInteropFilter {
+                            offset = Offset(it.x, it.y)
+                            false
+                        }
+                        .combinedClickable(
+                            onClick = { onClick(listItem) },
+                            onLongClick = {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                dropDownExpanded = true
+                            })
                 ) {
                     Row {
                         Checkbox(
@@ -72,12 +85,12 @@ class BetterLazyColumn<T> {
                                 val prevMark = lastCheckTime
                                 val (prevItem2, prevItem1) = lastCheckItem
                                 lastCheckTime = mark
-                                lastCheckItem = prevItem1 to file
-                                if (prevItem2 != null && prevItem2 != file && prevItem1 == file
+                                lastCheckItem = prevItem1 to listItem
+                                if (prevItem2 != null && prevItem2 != listItem && prevItem1 == listItem
                                     && prevMark?.let { mark - it < 300.milliseconds } == true
                                 ) {
                                     val anotherI = items.indexOf(prevItem2)
-                                    val thisI = items.indexOf(file)
+                                    val thisI = items.indexOf(listItem)
                                     val list = selectedItems.toMutableList()
                                     val select = prevItem2 in selectedItems
                                     for (i in min(thisI, anotherI)..max(thisI, anotherI)) {
@@ -94,32 +107,18 @@ class BetterLazyColumn<T> {
                                 } else {
                                     selectedItems =
                                         if (selected) selectedItems.toMutableList()
-                                            .also { it.remove(file) }
-                                        else selectedItems.toMutableList().also { it.add(file) }
+                                            .also { it.remove(listItem) }
+                                        else selectedItems.toMutableList().also { it.add(listItem) }
                                 }
                             },
                         )
-                        Box(
-                            modifier = Modifier
-                                .pointerInteropFilter {
-                                    offset = Offset(it.x, it.y)
-                                    false
-                                }
-                                .combinedClickable(
-                                    onClick = {},
-                                    onLongClick = {
-                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        dropDownExpanded = true
-                                    })
-                        ) {
-                            item(file)
-                            DropdownMenu(
-                                expanded = dropDownExpanded,
-                                offset = DpOffset(xDp, yDp),
-                                onDismissRequest = { dropDownExpanded = false }) {
+                        item(listItem)
+                        DropdownMenu(
+                            expanded = dropDownExpanded,
+                            offset = DpOffset(xDp, yDp),
+                            onDismissRequest = { dropDownExpanded = false }) {
 
-                                dropdownItems(file, { dropDownExpanded = false })
-                            }
+                            dropdownItems(listItem, { dropDownExpanded = false })
                         }
                     }
                 }

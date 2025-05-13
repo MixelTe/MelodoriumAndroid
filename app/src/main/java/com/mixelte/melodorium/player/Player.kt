@@ -8,6 +8,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player.Listener
 import androidx.media3.session.MediaController
 import com.mixelte.melodorium.data.MusicFile
+import com.mixelte.melodorium.swap
 
 object Player : Listener {
     val playlist = mutableStateListOf<MusicFile>()
@@ -16,20 +17,32 @@ object Player : Listener {
     private var mediaController: MediaController? = null
 
     fun addTrack(track: MusicFile) {
+        playlist.indexOf(track).takeIf { it >= 0 }?.let { i ->
+            playlist.removeAt(i)
+            mediaController?.run {
+                removeMediaItem(i)
+            }
+        }
         playlist.add(track)
         if (current == null) current = track
         mediaController?.run {
-            addMediaItem(MediaItem.Builder().setUri(track.uri).setMediaId(track.rpath).build())
+            addMediaItem(track.toMediaItem())
         }
     }
 
     fun addTracks(tracks: List<MusicFile>) {
-        playlist.addAll(tracks)
+        tracks.forEach { track ->
+            playlist.indexOf(track).takeIf { it >= 0 }?.let { i ->
+                playlist.removeAt(i)
+                mediaController?.run {
+                    removeMediaItem(i)
+                }
+            }
+            playlist.add(track)
+        }
         if (current == null) current = playlist.getOrNull(0)
         mediaController?.run {
-            addMediaItems(tracks.map {
-                MediaItem.Builder().setUri(it.uri).setMediaId(it.rpath).build()
-            })
+            addMediaItems(tracks.map { it.toMediaItem() })
         }
     }
 
@@ -42,10 +55,43 @@ object Player : Listener {
         }
     }
 
+    fun shuffle() {
+        playlist.shuffle()
+        playlist.swap(0, playlist.indexOf(current))
+        mediaController?.run {
+            val curPos = currentPosition
+            setMediaItems(playlist.map { it.toMediaItem() })
+            seekTo(0, curPos)
+        }
+    }
+
+    fun shuffle(selected: List<MusicFile>) {
+        var cur = playlist.indexOf(current)
+        val items = selected.map { it to playlist.indexOf(it) }.filter { it.second >= 0 }
+        items.shuffled().forEachIndexed { i, it ->
+            playlist[it.second] = items[i].first
+            if (items[i].first == current) cur = it.second
+        }
+        mediaController?.run {
+            val curPos = currentPosition
+            setMediaItems(playlist.map { it.toMediaItem() })
+            if (cur >= 0)
+                seekTo(cur, curPos)
+        }
+    }
+
     fun setMediaController(mediaController: MediaController) {
         this.mediaController = mediaController
         mediaController.addListener(Player)
         isPlaying = mediaController.isPlaying
+    }
+
+    fun play(item: MusicFile) {
+        val i = playlist.indexOf(item)
+        if (i < 0) return
+        mediaController?.run {
+            seekTo(i, 0)
+        }
     }
 
     fun playPause() {
@@ -76,4 +122,8 @@ object Player : Listener {
         super.onMediaItemTransition(mediaItem, reason)
         current = mediaItem?.let { playlist.find { it.rpath == mediaItem.mediaId } }
     }
+}
+
+private fun MusicFile.toMediaItem(): MediaItem {
+    return MediaItem.Builder().setUri(this.uri).setMediaId(this.rpath).build()
 }
