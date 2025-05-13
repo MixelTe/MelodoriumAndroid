@@ -16,6 +16,7 @@ object MusicDataFilter {
     var lang = MusicLang.entries.toMutableStateList()
     var emo = MusicEmo.entries.toMutableStateList()
     var tags = mutableStateListOf<String>()
+    var folders = mutableStateListOf<String>()
 
     var files by mutableStateOf<List<MusicFile>>(listOf())
     var title by mutableStateOf("")
@@ -31,6 +32,7 @@ object MusicDataFilter {
             lang.toList(),
             emo.toList(),
             tags.toList(),
+            folders.toList(),
         ) {
             updateFiles()
         }
@@ -46,7 +48,8 @@ object MusicDataFilter {
                     (like.isEmpty() || it.like in like) &&
                     (lang.isEmpty() || it.lang in lang) &&
                     (emo.isEmpty() || it.emo in emo) &&
-                    (tags.isEmpty() || it.tags.any { it in tags })
+                    (tags.isEmpty() || it.tags.any { it in tags }) &&
+                    (folders.isEmpty() || it.folder in folders)
         }
         title = buildTitle()
     }
@@ -63,6 +66,7 @@ object MusicDataFilter {
         emo.clear()
         emo.addAll(MusicEmo.entries)
         tags.clear()
+        folders.clear()
     }
 
     private fun buildTitle(): String {
@@ -77,10 +81,10 @@ object MusicDataFilter {
             if (curTags.size != allTags.size) {
                 ftags.add(
                     prefix +
-                        if (curTags.size < allTags.size - k)
-                            curTags.joinToString("") { it.name.take(2) }
-                        else
-                            (allTags - curTags.toSet()).joinToString("") { "-${it.name.take(2)}" }
+                            if (curTags.size < allTags.size - k)
+                                curTags.joinToString("") { it.name.take(2) }
+                            else
+                                (allTags - curTags.toSet()).joinToString("") { "-${it.name.take(2)}" }
                 )
             }
         }
@@ -95,6 +99,12 @@ object MusicDataFilter {
         }
         if (title != "") title += " | "
         title += tags.joinToString(";")
+
+        if (title != "") title += " | "
+        title +=
+            if (folders.size < 2) folders.joinToString(";")
+            else "${folders.size} folders"
+
         return title
     }
 }

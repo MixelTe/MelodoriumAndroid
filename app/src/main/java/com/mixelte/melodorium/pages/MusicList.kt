@@ -114,6 +114,7 @@ fun MusicList() {
             FilterDropdown(MusicLang.entries, MusicDataFilter.lang, "lang")
             FilterDropdown(MusicEmo.entries, MusicDataFilter.emo, "emo")
             FilterDropdown(MusicData.Tags, MusicDataFilter.tags, "tags")
+            FilterDropdown(MusicData.Folders, MusicDataFilter.folders, "folders")
         }
 
         Row(

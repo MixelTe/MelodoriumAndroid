@@ -28,6 +28,7 @@ import java.io.InputStreamReader
 object MusicData {
     var Files by mutableStateOf(listOf<MusicFile>())
     var Tags by mutableStateOf(listOf<String>())
+    var Folders by mutableStateOf(listOf<String>())
     var Error by mutableStateOf<String?>(null)
     var IsLoading by mutableStateOf(false)
 
@@ -54,6 +55,7 @@ object MusicData {
                 try {
                     Files = listOf()
                     Tags = listOf()
+                    Folders = listOf()
                     IsLoading = true
                     Error = null
                     val datafile = DocumentFile.fromSingleUri(context, musicDatafile)
@@ -73,6 +75,10 @@ object MusicData {
                     Files.forEach { it.tags.forEach { tags.add(it) } }
                     tags.remove("")
                     Tags = tags.toList()
+
+                    val folders = mutableSetOf<String>()
+                    Files.forEach { folders.add(it.folder) }
+                    Folders = folders.toList()
                 } catch (e: Exception) {
                     Error = e.toString()
                 } finally {
@@ -193,8 +199,13 @@ object MusicData {
 
 private fun String.getFilename(): String {
     val cut = this.lastIndexOf('/')
-    if (cut != -1) return this.substring(cut + 1)
+    if (cut >= 0) return this.substring(cut + 1)
     return this
+}
+private fun String.getFolderName(): String {
+    val cut = this.lastIndexOf('/')
+    if (cut >= 0) return this.substring(0, cut)
+    return ""
 }
 
 @Serializable
@@ -224,7 +235,8 @@ class MusicFile(
     val author: String
     val nameNorm: String
     val authorNorm: String
-    val rpath: String = data.RPath
+    val rpath = data.RPath
+    val folder = data.RPath.getFolderName()
     val ext: String
     val mood = data.Mood
     val like = data.Like
