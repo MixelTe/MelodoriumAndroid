@@ -1,4 +1,4 @@
-package com.mixelte.melodorium
+package com.mixelte.melodorium.player
 
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession

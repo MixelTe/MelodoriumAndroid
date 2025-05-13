@@ -1,4 +1,4 @@
-package com.mixelte.melodorium
+package com.mixelte.melodorium.pages
 
 import android.content.Context
 import android.content.Intent
@@ -23,6 +23,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
 
 
 val Context.dataStore by preferencesDataStore("settings")
@@ -121,5 +122,5 @@ fun getMusicDatafile(): Uri? {
     val context = LocalContext.current
     val flow: Flow<String?> = context.dataStore.data.map { it[musicDatafileKey] }
     val state = flow.collectAsState(null).value
-    return state?.let { Uri.parse(it) }
+    return state?.toUri()
 }

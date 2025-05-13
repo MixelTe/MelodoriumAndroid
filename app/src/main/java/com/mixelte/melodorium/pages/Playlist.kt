@@ -1,4 +1,4 @@
-package com.mixelte.melodorium
+package com.mixelte.melodorium.pages
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +24,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import com.mixelte.melodorium.components.BetterLazyColumn
+import com.mixelte.melodorium.data.MusicFile
+import com.mixelte.melodorium.player.Player
 import com.mixelte.melodorium.ui.theme.muted
 
 @Composable

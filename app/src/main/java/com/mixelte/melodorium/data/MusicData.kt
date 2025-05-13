@@ -1,4 +1,4 @@
-package com.mixelte.melodorium
+package com.mixelte.melodorium.data
 
 import android.content.Context
 import android.net.Uri
@@ -15,6 +15,8 @@ import androidx.room.Room
 import com.mixelte.melodorium.db.AppDatabase
 import com.mixelte.melodorium.db.File
 import com.mixelte.melodorium.db.FileDao
+import com.mixelte.melodorium.pages.getMusicDatafile
+import com.mixelte.melodorium.pages.getMusicRootFolder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable

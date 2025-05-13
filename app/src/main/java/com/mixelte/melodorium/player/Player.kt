@@ -1,4 +1,4 @@
-package com.mixelte.melodorium
+package com.mixelte.melodorium.player
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -7,7 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player.Listener
 import androidx.media3.session.MediaController
-import kotlinx.coroutines.flow.MutableStateFlow
+import com.mixelte.melodorium.data.MusicFile
 
 object Player : Listener {
     val playlist = mutableStateListOf<MusicFile>()
@@ -20,6 +20,16 @@ object Player : Listener {
         if (current == null) current = track
         mediaController?.run {
             addMediaItem(MediaItem.Builder().setUri(track.uri).setMediaId(track.rpath).build())
+        }
+    }
+
+    fun addTracks(tracks: List<MusicFile>) {
+        playlist.addAll(tracks)
+        if (current == null) current = playlist.getOrNull(0)
+        mediaController?.run {
+            addMediaItems(tracks.map {
+                MediaItem.Builder().setUri(it.uri).setMediaId(it.rpath).build()
+            })
         }
     }
 

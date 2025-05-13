@@ -1,4 +1,4 @@
-package com.mixelte.melodorium
+package com.mixelte.melodorium.pages
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +33,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.mixelte.melodorium.components.BetterLazyColumn
+import com.mixelte.melodorium.components.ExpandableBox
+import com.mixelte.melodorium.components.SelectableDropdownMenu
+import com.mixelte.melodorium.data.MusicData
+import com.mixelte.melodorium.data.MusicDataFilter
+import com.mixelte.melodorium.data.MusicEmo
+import com.mixelte.melodorium.data.MusicFile
+import com.mixelte.melodorium.data.MusicLang
+import com.mixelte.melodorium.data.MusicLike
+import com.mixelte.melodorium.data.MusicMood
+import com.mixelte.melodorium.player.Player
 import com.mixelte.melodorium.ui.theme.Tomato
 import com.mixelte.melodorium.ui.theme.muted
 import kotlinx.coroutines.launch
@@ -144,9 +155,7 @@ fun MusicList() {
                         text = { Text("Add selected to playlist") },
                         enabled = mList.selectedItems.isNotEmpty(),
                         onClick = {
-                            mList.selectedItems.forEach {
-                                Player.addTrack(it)
-                            }
+                            Player.addTracks(mList.selectedItems)
                             mList.selectedItems = listOf()
                             closeDropdown()
                         })

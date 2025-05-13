@@ -13,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
@@ -38,6 +37,12 @@ import com.mixelte.melodorium.ui.theme.MelodoriumTheme
 import kotlinx.serialization.Serializable
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
+import com.mixelte.melodorium.data.MusicData
+import com.mixelte.melodorium.pages.MusicList
+import com.mixelte.melodorium.pages.Playlist
+import com.mixelte.melodorium.pages.Settings
+import com.mixelte.melodorium.player.PlaybackService
+import com.mixelte.melodorium.player.Player
 
 class Routes {
     @Serializable

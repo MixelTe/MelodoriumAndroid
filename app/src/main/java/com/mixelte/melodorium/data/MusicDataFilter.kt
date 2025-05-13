@@ -1,4 +1,4 @@
-package com.mixelte.melodorium
+package com.mixelte.melodorium.data
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
