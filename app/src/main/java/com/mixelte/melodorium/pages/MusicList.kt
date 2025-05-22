@@ -76,6 +76,16 @@ fun MusicList() {
                 )
                 Text("Loading files")
             }
+        if (MusicData.Files.isEmpty())
+            return Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(30.dp, Alignment.CenterVertically),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Select music folder and data file in settings")
+            }
 
         MusicDataFilter.Updater()
         ExpandableBox({ (if (it) "" else MusicDataFilter.title).ifBlank { "Filter" } }) {

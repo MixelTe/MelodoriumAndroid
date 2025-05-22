@@ -76,7 +76,7 @@ fun getMusicRootFolder(): Uri? {
     val context = LocalContext.current
     val flow: Flow<String?> = context.dataStore.data.map { it[musicRootFolderKey] }
     val state = flow.collectAsState(null).value
-    return state?.let { Uri.parse(it) }
+    return state?.toUri()
 }
 
 val musicDatafileKey = stringPreferencesKey("musicDatafile")
