@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
+import com.mixelte.melodorium.components.CheckForUpdates
 
 
 val Context.dataStore by preferencesDataStore("settings")
@@ -34,6 +35,7 @@ fun Settings() {
     Column (modifier = Modifier.padding(5.dp)) {
         MusicRootFolder()
         MusicDatafile()
+        CheckForUpdates()
     }
 }
 
