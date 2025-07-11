@@ -34,8 +34,8 @@ object MusicData {
 
     private var curMusicDatafile = ""
     private var curMusicRootFolder = ""
-    private var curMusicRootFolderUri: Uri? = null;
-    private var musicDatafile: MusicDatafile? = null;
+    private var curMusicRootFolderUri: Uri? = null
+    private var musicDatafile: MusicDatafile? = null
 
     @Composable
     fun MusicDataLoader() {
@@ -210,21 +210,21 @@ private fun String.getFolderName(): String {
 
 @Serializable
 data class MusicDatafile(
-    var Version: Int,
-    var FolderAuthor: Map<String, String>,
-    var Files: List<MusicFileData>,
+    @Suppress("PropertyName") var Version: Int,
+    @Suppress("PropertyName") var FolderAuthor: Map<String, String>,
+    @Suppress("PropertyName") var Files: List<MusicFileData>,
 )
 
 @Serializable
 data class MusicFileData(
-    var RPath: String,
-    val IsLoaded: Boolean,
-    val Mood: MusicMood,
-    val Like: MusicLike,
-    val Lang: MusicLang,
-    val Emo: MusicEmo,
-    val Hidden: Boolean,
-    val Tag: String,
+    @Suppress("PropertyName") var RPath: String,
+    @Suppress("PropertyName") val IsLoaded: Boolean,
+    @Suppress("PropertyName") val Mood: MusicMood,
+    @Suppress("PropertyName") val Like: MusicLike,
+    @Suppress("PropertyName") val Lang: MusicLang,
+    @Suppress("PropertyName") val Emo: MusicEmo,
+    @Suppress("PropertyName") val Public: Boolean,
+    @Suppress("PropertyName") val Tag: String,
 )
 
 class MusicFile(
@@ -242,7 +242,7 @@ class MusicFile(
     val like = data.Like
     val lang = data.Lang
     val emo = data.Emo
-    val hidden = data.Hidden
+    val public = data.Public
     val tag = data.Tag
     val tags = data.Tag.split(";")
 

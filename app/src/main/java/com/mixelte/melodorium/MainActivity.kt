@@ -20,15 +20,18 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.media3.session.MediaController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -58,9 +61,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             enableEdgeToEdge(
-                navigationBarStyle = SystemBarStyle.light(
-                    MaterialTheme.colorScheme.primaryContainer.toArgb(),
-                    MaterialTheme.colorScheme.onPrimaryContainer.toArgb()
+                navigationBarStyle = SystemBarStyle.auto(
+                    MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp).toArgb(),
+                    MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp).toArgb(),
                 )
             )
             val navController = rememberNavController()
