@@ -121,6 +121,19 @@ object Player : Listener {
         addTrack(next)
     }
 
+    fun swapTracks(i1: Int, i2: Int) {
+        if (i1 < 0 || i1 >= playlist.size ||
+            i2 < 0 || i2 >= playlist.size)
+            return
+        playlist.swap(i1, i2)
+        mediaController?.run {
+            val cur = playlist.indexOf(current)
+            val curPos = currentPosition
+            setMediaItems(playlist.map { it.toMediaItem() })
+            seekTo(cur, curPos)
+        }
+    }
+
     override fun onIsPlayingChanged(isPlaying: Boolean) {
         super.onIsPlayingChanged(isPlaying)
         this.isPlaying = isPlaying

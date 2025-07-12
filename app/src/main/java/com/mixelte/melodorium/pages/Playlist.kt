@@ -6,12 +6,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -24,9 +21,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentEnforcement
-import androidx.compose.material3.LocalMinimumTouchTargetEnforcement
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,14 +32,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
 import com.mixelte.melodorium.components.BetterLazyColumn
 import com.mixelte.melodorium.components.SwitchWithLabel
-import com.mixelte.melodorium.data.MusicDataFilter
-import com.mixelte.melodorium.data.MusicFile
 import com.mixelte.melodorium.player.Player
 import com.mixelte.melodorium.player.PlayerItem
 import com.mixelte.melodorium.ui.theme.muted
@@ -151,11 +142,11 @@ fun Playlist() {
             }
         }
 
-        mList.LazyColumn(Player.playlist, { it.mediaId }, { file, closeDropdown ->
+        mList.LazyColumn(Player.playlist, { it.mediaId }, { item, closeDropdown ->
             DropdownMenuItem(
                 text = { Text("Remove from playlist") },
                 onClick = {
-                    Player.removeTrack(file)
+                    Player.removeTrack(item)
                     closeDropdown()
                 })
             DropdownMenuItem(
@@ -185,6 +176,30 @@ fun Playlist() {
                 text = { Text("Clear playlist") },
                 onClick = {
                     Player.clear()
+                    closeDropdown()
+                })
+            DropdownMenuItem(
+                text = { Text("Move track up") },
+                enabled = Player.playlist.first() != item,
+                onClick = {
+                    val i = Player.playlist.indexOf(item)
+                    Player.swapTracks(i, i - 1)
+                    closeDropdown()
+                })
+            DropdownMenuItem(
+                text = { Text("Move track down") },
+                enabled = Player.playlist.last() != item,
+                onClick = {
+                    val i = Player.playlist.indexOf(item)
+                    Player.swapTracks(i, i + 1)
+                    closeDropdown()
+                })
+            DropdownMenuItem(
+                text = { Text("Move track to end") },
+                enabled = Player.playlist.last() != item,
+                onClick = {
+                    val i = Player.playlist.indexOf(item)
+                    Player.swapTracks(i, Player.playlist.size - 1)
                     closeDropdown()
                 })
         }, {
