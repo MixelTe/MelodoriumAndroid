@@ -7,46 +7,36 @@ import androidx.compose.runtime.setValue
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player.Listener
 import androidx.media3.session.MediaController
+import com.mixelte.melodorium.data.MusicDataFilter
 import com.mixelte.melodorium.data.MusicFile
 import com.mixelte.melodorium.swap
 
 object Player : Listener {
-    val playlist = mutableStateListOf<MusicFile>()
-    var current by mutableStateOf<MusicFile?>(null)
+    val playlist = mutableStateListOf<PlayerItem>()
+    var current by mutableStateOf<PlayerItem?>(null)
     var isPlaying by mutableStateOf(false)
+    var autoAdd by mutableStateOf(true)
     private var mediaController: MediaController? = null
 
     fun addTrack(track: MusicFile) {
-        playlist.indexOf(track).takeIf { it >= 0 }?.let { i ->
-            playlist.removeAt(i)
-            mediaController?.run {
-                removeMediaItem(i)
-            }
-        }
-        playlist.add(track)
-        if (current == null) current = track
+        val item = PlayerItem(track)
+        playlist.add(item)
+        if (current == null) current = item
         mediaController?.run {
-            addMediaItem(track.toMediaItem())
+            addMediaItem(item.toMediaItem())
         }
     }
 
     fun addTracks(tracks: List<MusicFile>) {
-        tracks.forEach { track ->
-            playlist.indexOf(track).takeIf { it >= 0 }?.let { i ->
-                playlist.removeAt(i)
-                mediaController?.run {
-                    removeMediaItem(i)
-                }
-            }
-            playlist.add(track)
-        }
+        val items = tracks.map { PlayerItem(it) }
+        playlist.addAll(items)
         if (current == null) current = playlist.getOrNull(0)
         mediaController?.run {
-            addMediaItems(tracks.map { it.toMediaItem() })
+            addMediaItems(items.map { it.toMediaItem() })
         }
     }
 
-    fun removeTrack(track: MusicFile) {
+    fun removeTrack(track: PlayerItem) {
         val i = playlist.indexOf(track)
         if (i < 0) return
         playlist.removeAt(i)
@@ -72,7 +62,7 @@ object Player : Listener {
         }
     }
 
-    fun shuffle(selected: List<MusicFile>) {
+    fun shuffle(selected: List<PlayerItem>) {
         var cur = playlist.indexOf(current)
         val items = selected.map { it to playlist.indexOf(it) }.filter { it.second >= 0 }
         items.shuffled().forEachIndexed { i, it ->
@@ -93,7 +83,7 @@ object Player : Listener {
         isPlaying = mediaController.isPlaying
     }
 
-    fun play(item: MusicFile) {
+    fun play(item: PlayerItem) {
         val i = playlist.indexOf(item)
         if (i < 0) return
         mediaController?.run {
@@ -104,7 +94,11 @@ object Player : Listener {
     fun playPause() {
         mediaController?.run {
             if (isPlaying) pause()
-            else play()
+            else {
+                if (autoAdd && playlist.isEmpty())
+                    addNextTrack()
+                play()
+            }
         }
     }
 
@@ -120,6 +114,13 @@ object Player : Listener {
         }
     }
 
+    fun addNextTrack() {
+        val tracks = MusicDataFilter.files.map { it to playlist.count { item -> it == item.file } }
+        val min = tracks.minBy { it.second }.second
+        val next = tracks.filter { it.second == min }.random().first
+        addTrack(next)
+    }
+
     override fun onIsPlayingChanged(isPlaying: Boolean) {
         super.onIsPlayingChanged(isPlaying)
         this.isPlaying = isPlaying
@@ -127,10 +128,22 @@ object Player : Listener {
 
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
         super.onMediaItemTransition(mediaItem, reason)
-        current = mediaItem?.let { playlist.find { it.rpath == mediaItem.mediaId } }
+        current = mediaItem?.let { playlist.find { it.mediaId == mediaItem.mediaId } }
+        current?.let {
+            if (autoAdd && playlist.last() == it)
+                addNextTrack()
+        }
     }
 }
 
-private fun MusicFile.toMediaItem(): MediaItem {
-    return MediaItem.Builder().setUri(this.uri).setMediaId(this.rpath).build()
+class PlayerItem(val file: MusicFile) {
+    val mediaId = (lastMediaId++).toString()
+
+    companion object {
+        var lastMediaId = 1
+    }
+
+    fun toMediaItem(): MediaItem {
+        return MediaItem.Builder().setUri(file.uri).setMediaId(this.mediaId).build()
+    }
 }

@@ -2,12 +2,16 @@ package com.mixelte.melodorium.pages
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -16,25 +20,39 @@ import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentEnforcement
+import androidx.compose.material3.LocalMinimumTouchTargetEnforcement
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.times
 import com.mixelte.melodorium.components.BetterLazyColumn
+import com.mixelte.melodorium.components.SwitchWithLabel
+import com.mixelte.melodorium.data.MusicDataFilter
 import com.mixelte.melodorium.data.MusicFile
 import com.mixelte.melodorium.player.Player
+import com.mixelte.melodorium.player.PlayerItem
 import com.mixelte.melodorium.ui.theme.muted
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Playlist() {
-    val mList = remember { BetterLazyColumn<MusicFile>() }
+    val mList = remember { BetterLazyColumn<PlayerItem>() }
     val clipboardManager = LocalClipboardManager.current
 
     Column {
@@ -54,19 +72,21 @@ fun Playlist() {
                 ) {
                     Player.current?.also {
                         Text(
-                            if (it.author != "") "${it.author}: ${it.name}" else it.name,
+                            if (it.file.author != "") "${it.file.author}: ${it.file.name}" else it.file.name,
                             modifier = Modifier.weight(1f),
                             minLines = 2,
                         )
-                        Text(it.tagsLabel)
+                        Text(it.file.tagsLabel)
                     } ?: Text("No playing")
                 }
-                val rpath = Player.current?.rpath ?: ""
+                val rpath = Player.current?.file?.rpath ?: ""
                 Text(
                     text = rpath,
-                    modifier = Modifier.padding(start = 5.dp).clickable {
-                        clipboardManager.setText(AnnotatedString(rpath))
-                    },
+                    modifier = Modifier
+                        .padding(start = 5.dp)
+                        .clickable {
+                            clipboardManager.setText(AnnotatedString(rpath))
+                        },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer.muted
                 )
@@ -87,7 +107,51 @@ fun Playlist() {
                 }
             }
         }
-        mList.LazyColumn(Player.playlist, { it.rpath }, { file, closeDropdown ->
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SwitchWithLabel(
+                modifier = Modifier
+                    .padding(start = 6.dp)
+                    .weight(1f),
+                label = "Auto add next",
+                checked = Player.autoAdd,
+                onCheckedChange = {
+                    Player.autoAdd = it
+                },
+                style = MaterialTheme.typography.labelLarge,
+                size = 0.5f,
+            )
+
+            Box(modifier = Modifier.weight(1f)) {
+                Text(
+                    "${Player.playlist.size}",
+                    modifier = Modifier.align(Alignment.Center),
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                CompositionLocalProvider(LocalMinimumInteractiveComponentEnforcement provides false) {
+                    TextButton(
+                        { Player.addNextTrack() },
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .heightIn(max = with(LocalDensity.current) { MaterialTheme.typography.labelLarge.lineHeight.toDp() + (2 * 2.dp) }),
+                        contentPadding = PaddingValues(6.dp, 2.dp)
+                    ) {
+                        Text(
+                            "Add next",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
+                }
+            }
+        }
+
+        mList.LazyColumn(Player.playlist, { it.mediaId }, { file, closeDropdown ->
             DropdownMenuItem(
                 text = { Text("Remove from playlist") },
                 onClick = {
@@ -134,8 +198,11 @@ fun Playlist() {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text(if (it.author != "") "${it.author}: ${it.name}" else it.name, modifier = Modifier.weight(1f))
-                Text(it.tagsLabel)
+                Text(
+                    if (it.file.author != "") "${it.file.author}: ${it.file.name}" else it.file.name,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(it.file.tagsLabel)
             }
         }
     }
