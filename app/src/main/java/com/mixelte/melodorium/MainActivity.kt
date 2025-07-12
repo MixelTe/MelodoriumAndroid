@@ -46,14 +46,32 @@ import com.mixelte.melodorium.pages.Playlist
 import com.mixelte.melodorium.pages.Settings
 import com.mixelte.melodorium.player.PlaybackService
 import com.mixelte.melodorium.player.Player
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
-class Routes {
+@Serializable
+sealed class Routes {
     @Serializable
-    object MusicList;
+    object MusicList : Routes();
     @Serializable
-    object Playlist;
+    object Playlist : Routes();
     @Serializable
-    object Settings;
+    object Settings : Routes();
+
+    companion object {
+        private val json = Json {
+            classDiscriminator = "type"
+            ignoreUnknownKeys = true
+        }
+
+        fun serialize(route: Routes): String {
+            return json.encodeToString(route)
+        }
+
+        fun deserialize(serialized: String): Routes? {
+            return runCatching { json.decodeFromString<Routes>(serialized) }.getOrNull()
+        }
+    }
 }
 
 class MainActivity : ComponentActivity() {
@@ -69,8 +87,9 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
             val navigate = {route: Any -> navController.navigate(route)}
             MusicData.MusicDataLoader()
+            val route = Routes.deserialize(intent.getStringExtra("navigate_to") ?: "")
             MelodoriumTheme {
-                NavHost(navController, Routes.MusicList) {
+                NavHost(navController, route ?: Routes.MusicList) {
                     composable<Routes.MusicList> {
                         Layout(Routes.MusicList, navigate) { MusicList() }
                     }
