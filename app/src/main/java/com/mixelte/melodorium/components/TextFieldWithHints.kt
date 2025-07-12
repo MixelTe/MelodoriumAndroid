@@ -28,7 +28,7 @@ fun TextFieldWithHints(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = false }) {
         OutlinedTextField(
             modifier = modifier.menuAnchor(),
             value = value,

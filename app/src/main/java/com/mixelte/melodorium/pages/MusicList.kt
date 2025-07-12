@@ -111,7 +111,11 @@ fun MusicList() {
                 SelectableDropdownMenu(
                     all,
                     { it in cur },
-                    { it, selected -> if (selected) cur.add(it) else cur.remove(it) },
+                    { it, selected ->
+                        if (selected) {
+                            if (it !in cur) cur.add(it)
+                        } else cur.remove(it)
+                    },
                     { it.toString() }) {
                     Text(
                         when (cur.size) {

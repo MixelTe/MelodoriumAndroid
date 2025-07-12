@@ -41,12 +41,17 @@ fun ExpandableBox(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(4.dp, shape = RoundedCornerShape(12.dp))
+            .shadow(
+                4.dp,
+                shape = RoundedCornerShape(12.dp),
+                ambientColor = MaterialTheme.colorScheme.onSurface,
+                spotColor = MaterialTheme.colorScheme.onSurface
+            )
             .background(
                 color = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(12.dp)
             )
-            .clickable { expanded = !expanded }
+            .clickable(null, indication = null) { expanded = !expanded }
             .padding(16.dp)
     ) {
         AnimatedContent(expanded) { isExpanded ->

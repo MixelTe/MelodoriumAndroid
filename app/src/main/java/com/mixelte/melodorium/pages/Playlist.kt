@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
 import com.mixelte.melodorium.components.BetterLazyColumn
 import com.mixelte.melodorium.components.SwitchWithLabel
+import com.mixelte.melodorium.components.TextButtonSmall
 import com.mixelte.melodorium.player.Player
 import com.mixelte.melodorium.player.PlayerItem
 import com.mixelte.melodorium.ui.theme.muted
@@ -125,20 +126,11 @@ fun Playlist() {
                 )
             }
             Box(modifier = Modifier.weight(1f)) {
-                CompositionLocalProvider(LocalMinimumInteractiveComponentEnforcement provides false) {
-                    TextButton(
-                        { Player.addNextTrack() },
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .heightIn(max = with(LocalDensity.current) { MaterialTheme.typography.labelLarge.lineHeight.toDp() + (2 * 2.dp) }),
-                        contentPadding = PaddingValues(6.dp, 2.dp)
-                    ) {
-                        Text(
-                            "Add next",
-                            style = MaterialTheme.typography.labelLarge,
-                        )
-                    }
-                }
+                TextButtonSmall(
+                    { Player.addNextTrack() },
+                    "Add next",
+                    Modifier.align(Alignment.CenterEnd),
+                )
             }
         }
 

@@ -6,7 +6,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -26,19 +27,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
 import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.mixelte.melodorium.ui.theme.MelodoriumTheme
-import kotlinx.serialization.Serializable
-import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
 import com.mixelte.melodorium.data.MusicData
 import com.mixelte.melodorium.pages.MusicList
@@ -46,31 +43,26 @@ import com.mixelte.melodorium.pages.Playlist
 import com.mixelte.melodorium.pages.Settings
 import com.mixelte.melodorium.player.PlaybackService
 import com.mixelte.melodorium.player.Player
+import com.mixelte.melodorium.ui.theme.MelodoriumTheme
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 @Serializable
 sealed class Routes {
     @Serializable
-    object MusicList : Routes();
+    object MusicList : Routes()
     @Serializable
-    object Playlist : Routes();
+    object Playlist : Routes()
     @Serializable
-    object Settings : Routes();
+    object Settings : Routes()
 
     companion object {
-        private val json = Json {
-            classDiscriminator = "type"
-            ignoreUnknownKeys = true
-        }
+        fun serialize(route: Routes): String =
+            Json.encodeToString(route)
 
-        fun serialize(route: Routes): String {
-            return json.encodeToString(route)
-        }
-
-        fun deserialize(serialized: String): Routes? {
-            return runCatching { json.decodeFromString<Routes>(serialized) }.getOrNull()
-        }
+        fun deserialize(serialized: String): Routes? =
+            runCatching { Json.decodeFromString<Routes>(serialized) }.getOrNull()
     }
 }
 
@@ -78,17 +70,17 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            enableEdgeToEdge(
-                navigationBarStyle = SystemBarStyle.light(
-                    NavigationBarDefaults.containerColor.toArgb(),
-                    NavigationBarDefaults.containerColor.toArgb(),
-                )
-            )
             val navController = rememberNavController()
-            val navigate = {route: Any -> navController.navigate(route)}
+            val navigate = { route: Any -> navController.navigate(route) }
             MusicData.MusicDataLoader()
             val route = Routes.deserialize(intent.getStringExtra("navigate_to") ?: "")
             MelodoriumTheme {
+                enableEdgeToEdge(
+                    navigationBarStyle = SystemBarStyle.auto(
+                        NavigationBarDefaults.containerColor.toArgb(),
+                        NavigationBarDefaults.containerColor.toArgb(),
+                    )
+                )
                 NavHost(navController, route ?: Routes.MusicList) {
                     composable<Routes.MusicList> {
                         Layout(Routes.MusicList, navigate) { MusicList() }
@@ -135,7 +127,8 @@ fun Layout(route: Any, navigate: (route: Any) -> Unit, page: @Composable () -> U
                             Routes.Playlist -> "Playlist"
                             Routes.Settings -> "Settings"
                             else -> ""
-                        })
+                        }
+                    )
                 }
             )
         },
@@ -162,8 +155,8 @@ fun Layout(route: Any, navigate: (route: Any) -> Unit, page: @Composable () -> U
             }
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier.padding(innerPadding)
+        Box(
+            modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding)
         ) {
             page()
         }
