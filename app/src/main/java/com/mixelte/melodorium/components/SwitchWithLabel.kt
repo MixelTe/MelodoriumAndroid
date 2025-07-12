@@ -41,7 +41,7 @@ fun SwitchWithLabel(
         verticalAlignment = Alignment.CenterVertically,
     ) {
 
-        Text(text = label, style = style, modifier = Modifier.padding(end = 6.dp * size))
+        Text(text = label, style = style, modifier = Modifier.padding(end = 8.dp * size))
         Switch(
             modifier = Modifier.trueScale(size),
             checked = checked,

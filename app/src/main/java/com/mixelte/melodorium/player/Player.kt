@@ -23,7 +23,7 @@ object Player : Listener {
         playlist.add(item)
         if (current == null) current = item
         mediaController?.run {
-            addMediaItem(item.toMediaItem())
+            addMediaItem(item.mediaItem)
         }
     }
 
@@ -32,7 +32,7 @@ object Player : Listener {
         playlist.addAll(items)
         if (current == null) current = playlist.getOrNull(0)
         mediaController?.run {
-            addMediaItems(items.map { it.toMediaItem() })
+            addMediaItems(items.map { it.mediaItem })
         }
     }
 
@@ -57,7 +57,7 @@ object Player : Listener {
         playlist.swap(0, playlist.indexOf(current))
         mediaController?.run {
             val curPos = currentPosition
-            setMediaItems(playlist.map { it.toMediaItem() })
+            setMediaItems(playlist.map { it.mediaItem })
             seekTo(0, curPos)
         }
     }
@@ -71,7 +71,7 @@ object Player : Listener {
         }
         mediaController?.run {
             val curPos = currentPosition
-            setMediaItems(playlist.map { it.toMediaItem() })
+            setMediaItems(playlist.map { it.mediaItem })
             if (cur >= 0)
                 seekTo(cur, curPos)
         }
@@ -121,16 +121,19 @@ object Player : Listener {
         addTrack(next)
     }
 
-    fun swapTracks(i1: Int, i2: Int) {
-        if (i1 < 0 || i1 >= playlist.size ||
-            i2 < 0 || i2 >= playlist.size)
+    fun moveTrack(item: PlayerItem, toI: Int) =
+        moveTrack(playlist.indexOf(item), toI)
+
+    fun moveTrack(i: Int, toI: Int) {
+        if (i < 0 || i >= playlist.size ||
+            toI < 0 || toI >= playlist.size
+        )
             return
-        playlist.swap(i1, i2)
+        val item = playlist[i]
+        playlist.removeAt(i)
+        playlist.add(toI, item)
         mediaController?.run {
-            val cur = playlist.indexOf(current)
-            val curPos = currentPosition
-            setMediaItems(playlist.map { it.toMediaItem() })
-            seekTo(cur, curPos)
+            moveMediaItem(i, toI)
         }
     }
 
@@ -151,12 +154,9 @@ object Player : Listener {
 
 class PlayerItem(val file: MusicFile) {
     val mediaId = (lastMediaId++).toString()
+    val mediaItem = MediaItem.Builder().setUri(file.uri).setMediaId(this.mediaId).build()
 
     companion object {
         var lastMediaId = 1
-    }
-
-    fun toMediaItem(): MediaItem {
-        return MediaItem.Builder().setUri(file.uri).setMediaId(this.mediaId).build()
     }
 }

@@ -17,7 +17,7 @@ object MusicDataFilter {
     var emo = MusicEmo.entries.toMutableStateList()
     var tags = mutableStateListOf<String>()
     var folders = mutableStateListOf<String>()
-    var public = MusicPublic.entries.toMutableStateList()
+    var public = mutableStateListOf<MusicPublic>()
 
     var files by mutableStateOf<List<MusicFile>>(listOf())
     var title by mutableStateOf("")
@@ -50,7 +50,7 @@ object MusicDataFilter {
                     (like.isEmpty() || it.like in like) &&
                     (lang.isEmpty() || it.lang in lang) &&
                     (emo.isEmpty() || it.emo in emo) &&
-                    (tags.isEmpty() || it.tags.any { it in tags }) &&
+                    (tags.isEmpty() || it.tags.any { tag -> tag in tags }) &&
                     (folders.isEmpty() || it.folderWithSpaces in folders) &&
                     (public.isEmpty() || it.publicEnum in public)
         }.sortedBy { it.rpath }
@@ -71,7 +71,6 @@ object MusicDataFilter {
         tags.clear()
         folders.clear()
         public.clear()
-        public.add(MusicPublic.Public)
     }
 
     private fun buildTitle(): String {

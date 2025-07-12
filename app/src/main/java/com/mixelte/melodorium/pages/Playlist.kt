@@ -143,35 +143,37 @@ fun Playlist() {
         }
 
         mList.LazyColumn(Player.playlist, { it.mediaId }, { item, closeDropdown ->
-            DropdownMenuItem(
-                text = { Text("Remove from playlist") },
-                onClick = {
-                    Player.removeTrack(item)
-                    closeDropdown()
-                })
-            DropdownMenuItem(
-                text = { Text("Remove selected from playlist") },
-                enabled = mList.selectedItems.isNotEmpty(),
-                onClick = {
-                    mList.selectedItems.forEach {
-                        Player.removeTrack(it)
-                    }
-                    mList.selectedItems = listOf()
-                    closeDropdown()
-                })
-            DropdownMenuItem(
-                text = { Text("Shuffle playlist") },
-                onClick = {
-                    Player.shuffle()
-                    closeDropdown()
-                })
-            DropdownMenuItem(
-                text = { Text("Shuffle selected") },
-                enabled = mList.selectedItems.size > 1,
-                onClick = {
-                    Player.shuffle(mList.selectedItems)
-                    closeDropdown()
-                })
+            if (mList.selectedItems.isEmpty())
+                DropdownMenuItem(
+                    text = { Text("Remove from playlist") },
+                    onClick = {
+                        Player.removeTrack(item)
+                        closeDropdown()
+                    })
+            else
+                DropdownMenuItem(
+                    text = { Text("Remove selected from playlist") },
+                    onClick = {
+                        mList.selectedItems.forEach {
+                            Player.removeTrack(it)
+                        }
+                        mList.selectedItems = listOf()
+                        closeDropdown()
+                    })
+            if (mList.selectedItems.size <= 1)
+                DropdownMenuItem(
+                    text = { Text("Shuffle playlist") },
+                    onClick = {
+                        Player.shuffle()
+                        closeDropdown()
+                    })
+            else
+                DropdownMenuItem(
+                    text = { Text("Shuffle selected") },
+                    onClick = {
+                        Player.shuffle(mList.selectedItems)
+                        closeDropdown()
+                    })
             DropdownMenuItem(
                 text = { Text("Clear playlist") },
                 onClick = {
@@ -183,7 +185,7 @@ fun Playlist() {
                 enabled = Player.playlist.first() != item,
                 onClick = {
                     val i = Player.playlist.indexOf(item)
-                    Player.swapTracks(i, i - 1)
+                    Player.moveTrack(i, i - 1)
                     closeDropdown()
                 })
             DropdownMenuItem(
@@ -191,15 +193,14 @@ fun Playlist() {
                 enabled = Player.playlist.last() != item,
                 onClick = {
                     val i = Player.playlist.indexOf(item)
-                    Player.swapTracks(i, i + 1)
+                    Player.moveTrack(i, i + 1)
                     closeDropdown()
                 })
             DropdownMenuItem(
                 text = { Text("Move track to end") },
                 enabled = Player.playlist.last() != item,
                 onClick = {
-                    val i = Player.playlist.indexOf(item)
-                    Player.swapTracks(i, Player.playlist.size - 1)
+                    Player.moveTrack(item, Player.playlist.size - 1)
                     closeDropdown()
                 })
         }, {

@@ -159,20 +159,21 @@ fun MusicList() {
                 items = MusicDataFilter.files,
                 itemKey = { it.rpath },
                 dropdownItems = { file, closeDropdown ->
-                    DropdownMenuItem(
-                        text = { Text("Add to playlist") },
-                        onClick = {
-                            Player.addTrack(file)
-                            closeDropdown()
-                        })
-                    DropdownMenuItem(
-                        text = { Text("Add selected to playlist") },
-                        enabled = mList.selectedItems.isNotEmpty(),
-                        onClick = {
-                            Player.addTracks(mList.selectedItems)
-                            mList.selectedItems = listOf()
-                            closeDropdown()
-                        })
+                    if (mList.selectedItems.isEmpty())
+                        DropdownMenuItem(
+                            text = { Text("Add to playlist") },
+                            onClick = {
+                                Player.addTrack(file)
+                                closeDropdown()
+                            })
+                    else
+                        DropdownMenuItem(
+                            text = { Text("Add selected to playlist") },
+                            onClick = {
+                                Player.addTracks(mList.selectedItems)
+                                mList.selectedItems = listOf()
+                                closeDropdown()
+                            })
                     DropdownMenuItem(
                         text = { Text("Add selected to playlist randomly") },
                         enabled = mList.selectedItems.isNotEmpty(),
