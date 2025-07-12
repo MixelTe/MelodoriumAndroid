@@ -202,6 +202,7 @@ private fun String.getFilename(): String {
     if (cut >= 0) return this.substring(cut + 1)
     return this
 }
+
 private fun String.getFolderName(): String {
     val cut = this.lastIndexOf('/')
     if (cut >= 0) return this.substring(0, cut)
@@ -244,6 +245,7 @@ class MusicFile(
     val lang = data.Lang
     val emo = data.Emo
     val public = data.Public
+    val publicEnum = MusicPublic.fromBool(data.Public)
     val tag = data.Tag
     val tags = data.Tag.split(";")
 
@@ -274,6 +276,7 @@ class MusicFile(
             tags += ";"
             tags += like.name.substring(0, 2) + ";"
             tags += lang.name.substring(0, 2)
+            if (public) tags += ";P"
             if (tag != "")
                 tags += "|$tag"
             tags += "]"
@@ -311,4 +314,16 @@ enum class MusicEmo {
     Happy,
     Neutral,
     Sad,
+}
+
+enum class MusicPublic {
+    Private,
+    Public;
+
+    companion object {
+        fun fromBool(bool: Boolean) = when (bool) {
+            true -> Public
+            false -> Private
+        }
+    }
 }

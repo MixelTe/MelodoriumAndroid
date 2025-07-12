@@ -44,6 +44,7 @@ import com.mixelte.melodorium.data.MusicFile
 import com.mixelte.melodorium.data.MusicLang
 import com.mixelte.melodorium.data.MusicLike
 import com.mixelte.melodorium.data.MusicMood
+import com.mixelte.melodorium.data.MusicPublic
 import com.mixelte.melodorium.player.Player
 import com.mixelte.melodorium.ui.theme.Tomato
 import com.mixelte.melodorium.ui.theme.muted
@@ -126,6 +127,7 @@ fun MusicList() {
             FilterDropdown(MusicEmo.entries, MusicDataFilter.emo, "emo")
             FilterDropdown(MusicData.Tags, MusicDataFilter.tags, "tags")
             FilterDropdown(MusicData.Folders, MusicDataFilter.folders, "folders")
+            FilterDropdown(MusicPublic.entries, MusicDataFilter.public, "public")
         }
 
         Row(

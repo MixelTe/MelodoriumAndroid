@@ -17,6 +17,7 @@ object MusicDataFilter {
     var emo = MusicEmo.entries.toMutableStateList()
     var tags = mutableStateListOf<String>()
     var folders = mutableStateListOf<String>()
+    var public = MusicPublic.entries.toMutableStateList()
 
     var files by mutableStateOf<List<MusicFile>>(listOf())
     var title by mutableStateOf("")
@@ -33,6 +34,7 @@ object MusicDataFilter {
             emo.toList(),
             tags.toList(),
             folders.toList(),
+            public.toList(),
         ) {
             updateFiles()
         }
@@ -49,7 +51,8 @@ object MusicDataFilter {
                     (lang.isEmpty() || it.lang in lang) &&
                     (emo.isEmpty() || it.emo in emo) &&
                     (tags.isEmpty() || it.tags.any { it in tags }) &&
-                    (folders.isEmpty() || it.folderWithSpaces in folders)
+                    (folders.isEmpty() || it.folderWithSpaces in folders) &&
+                    (public.isEmpty() || it.publicEnum in public)
         }.sortedBy { it.rpath }
         title = buildTitle()
     }
@@ -67,6 +70,8 @@ object MusicDataFilter {
         emo.addAll(MusicEmo.entries)
         tags.clear()
         folders.clear()
+        public.clear()
+        public.add(MusicPublic.Public)
     }
 
     private fun buildTitle(): String {
@@ -104,6 +109,13 @@ object MusicDataFilter {
         title +=
             if (folders.size < 2) folders.joinToString(";")
             else "${folders.size} folders"
+
+        if (title != "") title += " | "
+        title += when {
+            public.size == 1 && MusicPublic.Public in public -> "P"
+            public.size == 1 && MusicPublic.Private in public -> "H"
+            else -> "A"
+        }
 
         return title
     }
