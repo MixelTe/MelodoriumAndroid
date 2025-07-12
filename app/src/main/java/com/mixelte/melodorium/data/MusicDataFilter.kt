@@ -75,11 +75,8 @@ object MusicDataFilter {
     }
 
     private fun buildTitle(): String {
-        var title = ""
-        if (author != "")
-            title += author.take(10)
-        if (name != "")
-            title += (if (title != "") " " else "") + name.take(10)
+        val parts = mutableListOf<String>()
+        parts.add(listOf(author.take(10), name.take(10)).joinToString(" "))
 
         val ftags = mutableStateListOf<String>()
         fun <T : Enum<T>> tagToStr(allTags: List<T>, curTags: List<T>, k: Int, prefix: String) {
@@ -98,25 +95,20 @@ object MusicDataFilter {
         tagToStr(MusicLang.entries, lang, 4, "N:")
         tagToStr(MusicEmo.entries, emo, 1, "E:")
 
-        if (ftags.isNotEmpty()) {
-            if (title != "") title += " "
-            title += ftags.joinToString("; ")
-        }
-        if (title != "") title += " | "
-        title += tags.joinToString(";")
-
-        if (title != "") title += " | "
-        title +=
+        parts.add(ftags.joinToString("; "))
+        parts.add(tags.joinToString(";"))
+        parts.add(
             if (folders.size < 2) folders.joinToString(";")
             else "${folders.size} folders"
+        )
+        parts.add(
+            when {
+                public.size == 1 && MusicPublic.Public in public -> "P"
+                public.size == 1 && MusicPublic.Private in public -> "H"
+                else -> ""
+            }
+        )
 
-        if (title != "") title += " | "
-        title += when {
-            public.size == 1 && MusicPublic.Public in public -> "P"
-            public.size == 1 && MusicPublic.Private in public -> "H"
-            else -> "A"
-        }
-
-        return title
+        return parts.filter { it != "" }.joinToString(" | ")
     }
 }
