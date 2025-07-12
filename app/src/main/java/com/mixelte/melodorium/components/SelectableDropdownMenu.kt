@@ -48,7 +48,9 @@ fun <T> SelectableDropdownMenu(
                     .padding(5.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                content()
+                Box(modifier = Modifier.weight(1f)) {
+                    content()
+                }
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded)
             }
         }

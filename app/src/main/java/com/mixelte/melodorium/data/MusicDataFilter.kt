@@ -49,8 +49,8 @@ object MusicDataFilter {
                     (lang.isEmpty() || it.lang in lang) &&
                     (emo.isEmpty() || it.emo in emo) &&
                     (tags.isEmpty() || it.tags.any { it in tags }) &&
-                    (folders.isEmpty() || it.folder in folders)
-        }
+                    (folders.isEmpty() || it.folderWithSpaces in folders)
+        }.sortedBy { it.rpath }
         title = buildTitle()
     }
 

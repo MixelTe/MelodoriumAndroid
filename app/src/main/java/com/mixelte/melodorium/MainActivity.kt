@@ -61,9 +61,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             enableEdgeToEdge(
-                navigationBarStyle = SystemBarStyle.auto(
-                    MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp).toArgb(),
-                    MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp).toArgb(),
+                navigationBarStyle = SystemBarStyle.light(
+                    NavigationBarDefaults.containerColor.toArgb(),
+                    NavigationBarDefaults.containerColor.toArgb(),
                 )
             )
             val navController = rememberNavController()

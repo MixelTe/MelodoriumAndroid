@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.mixelte.melodorium.components.BetterLazyColumn
 import com.mixelte.melodorium.components.ExpandableBox
 import com.mixelte.melodorium.components.SelectableDropdownMenu
+import com.mixelte.melodorium.components.TextFieldWithHints
 import com.mixelte.melodorium.data.MusicData
 import com.mixelte.melodorium.data.MusicDataFilter
 import com.mixelte.melodorium.data.MusicEmo
@@ -53,10 +54,9 @@ import kotlinx.coroutines.launch
     ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class,
     ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class
 )
-@Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
 @Composable
 fun MusicList() {
-    var mList = remember { BetterLazyColumn<MusicFile>() }
+    val mList = remember { BetterLazyColumn<MusicFile>() }
 
     Column(
         modifier = Modifier.padding(5.dp)
@@ -84,23 +84,24 @@ fun MusicList() {
                 verticalArrangement = Arrangement.spacedBy(30.dp, Alignment.CenterVertically),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                MusicData.Error?.let { Text(it, color = Color.Tomato) }
                 Text("Select music folder and data file in settings")
             }
 
         MusicDataFilter.Updater()
         ExpandableBox({ (if (it) "" else MusicDataFilter.title).ifBlank { "Filter" } }) {
-            OutlinedTextField(
+            TextFieldWithHints(
                 MusicDataFilter.author,
                 { MusicDataFilter.author = it },
+                options = MusicData.Folders,
                 label = { Text("Author") },
-                maxLines = 1,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 MusicDataFilter.name,
                 { MusicDataFilter.name = it },
                 label = { Text("Name") },
-                maxLines = 1,
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 

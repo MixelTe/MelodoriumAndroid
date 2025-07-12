@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mixelte.melodorium.components.BetterLazyColumn
 import com.mixelte.melodorium.data.MusicFile
@@ -32,7 +34,7 @@ import com.mixelte.melodorium.ui.theme.muted
 
 @Composable
 fun Playlist() {
-    var mList = remember { BetterLazyColumn<MusicFile>() }
+    val mList = remember { BetterLazyColumn<MusicFile>() }
     val clipboardManager = LocalClipboardManager.current
 
     Column {
@@ -53,7 +55,8 @@ fun Playlist() {
                     Player.current?.also {
                         Text(
                             if (it.author != "") "${it.author}: ${it.name}" else it.name,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            minLines = 2,
                         )
                         Text(it.tagsLabel)
                     } ?: Text("No playing")
@@ -112,6 +115,12 @@ fun Playlist() {
                 enabled = mList.selectedItems.size > 1,
                 onClick = {
                     Player.shuffle(mList.selectedItems)
+                    closeDropdown()
+                })
+            DropdownMenuItem(
+                text = { Text("Clear playlist") },
+                onClick = {
+                    Player.clear()
                     closeDropdown()
                 })
         }, {

@@ -55,6 +55,13 @@ object Player : Listener {
         }
     }
 
+    fun clear() {
+        mediaController?.run {
+            playlist.clear()
+            clearMediaItems()
+        }
+    }
+
     fun shuffle() {
         playlist.shuffle()
         playlist.swap(0, playlist.indexOf(current))

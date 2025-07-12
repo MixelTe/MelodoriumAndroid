@@ -78,7 +78,7 @@ object MusicData {
 
                     val folders = mutableSetOf<String>()
                     Files.forEach { folders.add(it.folder) }
-                    Folders = folders.toList()
+                    Folders = folders.map { it.replace('_', ' ') }
                 } catch (e: Exception) {
                     Error = e.toString()
                 } finally {
@@ -237,6 +237,7 @@ class MusicFile(
     val authorNorm: String
     val rpath = data.RPath
     val folder = data.RPath.getFolderName()
+    val folderWithSpaces = folder.replace('_', ' ')
     val ext: String
     val mood = data.Mood
     val like = data.Like
