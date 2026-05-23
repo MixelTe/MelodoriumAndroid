@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.navigation.compose.NavHost
@@ -38,11 +39,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.common.util.concurrent.MoreExecutors
 import com.mixelte.melodorium.data.MusicData
-import com.mixelte.melodorium.ui.MusicList
-import com.mixelte.melodorium.ui.Playlist
-import com.mixelte.melodorium.ui.Settings
 import com.mixelte.melodorium.player.PlaybackService
 import com.mixelte.melodorium.player.Player
+import com.mixelte.melodorium.ui.Playlist
+import com.mixelte.melodorium.ui.musiclist.MusicListScreen
+import com.mixelte.melodorium.ui.musiclist.MusicListViewModel
+import com.mixelte.melodorium.ui.settings.SettingsScreen
+import com.mixelte.melodorium.ui.settings.SettingsViewModel
 import com.mixelte.melodorium.ui.theme.MelodoriumTheme
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -51,8 +54,10 @@ import kotlinx.serialization.json.Json
 sealed class Routes {
     @Serializable
     object MusicList : Routes()
+
     @Serializable
     object Playlist : Routes()
+
     @Serializable
     object Settings : Routes()
 
@@ -68,11 +73,22 @@ sealed class Routes {
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val app = application as MelodoriumApplication
+
         setContent {
             val navController = rememberNavController()
-            val navigate = { route: Any -> navController.navigate(route) }
+
+            val settingsViewModel: SettingsViewModel = viewModel {
+                SettingsViewModel(app.settingsRepository)
+            }
+            val musicListViewModel: MusicListViewModel = viewModel {
+                MusicListViewModel(app.settingsRepository, app.musicRepository)
+            }
+
             MusicData.MusicDataLoader()
             val route = Routes.deserialize(intent.getStringExtra("navigate_to") ?: "")
+
             MelodoriumTheme {
                 enableEdgeToEdge(
                     navigationBarStyle = SystemBarStyle.auto(
@@ -80,15 +96,15 @@ class MainActivity : ComponentActivity() {
                         NavigationBarDefaults.containerColor.toArgb(),
                     )
                 )
-                NavHost(navController, route ?: Routes.MusicList) {
+                NavHost(navController, startDestination = route ?: Routes.MusicList) {
                     composable<Routes.MusicList> {
-                        Layout(Routes.MusicList, navigate) { MusicList() }
+                        Layout(Routes.MusicList, navController::navigate) { MusicListScreen(musicListViewModel) }
                     }
                     composable<Routes.Playlist> {
-                        Layout(Routes.Playlist, navigate) { Playlist() }
+                        Layout(Routes.Playlist, navController::navigate) { Playlist() }
                     }
                     composable<Routes.Settings> {
-                        Layout(Routes.Settings, navigate) { Settings() }
+                        Layout(Routes.Settings, navController::navigate) { SettingsScreen(settingsViewModel) }
                     }
                 }
             }
@@ -133,10 +149,20 @@ fun Layout(route: Any, navigate: (route: Any) -> Unit, page: @Composable () -> U
         },
         bottomBar = {
             NavigationBar {
-                data class Route(val route: Any, val name: String, val iconFilled: ImageVector, val iconOutlined: ImageVector)
+                data class Route(
+                    val route: Any,
+                    val name: String,
+                    val iconFilled: ImageVector,
+                    val iconOutlined: ImageVector
+                )
                 listOf(
                     Route(Routes.MusicList, "MusicList", Icons.Filled.Home, Icons.Outlined.Home),
-                    Route(Routes.Playlist, "Playlist", Icons.AutoMirrored.Filled.List, Icons.AutoMirrored.Outlined.List),
+                    Route(
+                        Routes.Playlist,
+                        "Playlist",
+                        Icons.AutoMirrored.Filled.List,
+                        Icons.AutoMirrored.Outlined.List
+                    ),
                     Route(Routes.Settings, "Settings", Icons.Filled.Settings, Icons.Outlined.Settings),
                 ).forEach {
                     NavigationBarItem(
@@ -155,7 +181,9 @@ fun Layout(route: Any, navigate: (route: Any) -> Unit, page: @Composable () -> U
         }
     ) { innerPadding ->
         Box(
-            modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding)
+            modifier = Modifier
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding)
         ) {
             page()
         }

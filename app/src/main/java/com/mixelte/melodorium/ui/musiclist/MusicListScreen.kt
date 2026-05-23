@@ -1,6 +1,5 @@
-package com.mixelte.melodorium.ui
+package com.mixelte.melodorium.ui.musiclist
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,25 +14,21 @@ import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.mixelte.melodorium.data.MusicData
-import com.mixelte.melodorium.data.MusicDataFilter
 import com.mixelte.melodorium.models.MusicEmo
 import com.mixelte.melodorium.models.MusicFile
 import com.mixelte.melodorium.models.MusicLang
@@ -49,57 +44,51 @@ import com.mixelte.melodorium.ui.theme.Tomato
 import com.mixelte.melodorium.ui.theme.muted
 import kotlinx.coroutines.launch
 
-
-@OptIn(
-    ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class,
-    ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class
-)
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun MusicList() {
+fun MusicListScreen(viewModel: MusicListViewModel) {
+    val title by viewModel.title.collectAsState()
+    val files by viewModel.filteredFiles.collectAsState()
+    val folders by viewModel.folders.collectAsState()
+    val tags by viewModel.tags.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
     val mList = remember { BetterLazyColumn<MusicFile>() }
 
-    Column(
-        modifier = Modifier.padding(5.dp)
-    ) {
-        if (MusicData.IsLoading)
-            return Column(
+    Column(modifier = Modifier.padding(5.dp)) {
+        if (isLoading || files.isEmpty()) {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(30.dp, Alignment.CenterVertically),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.width(64.dp),
-                    color = MaterialTheme.colorScheme.secondary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                )
-                Text("Loading files")
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.width(64.dp),
+                        color = MaterialTheme.colorScheme.secondary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                    Text("Loading files")
+                } else {
+                    Text(text = error ?: "Select folder in settings", color = Color.Tomato)
+                }
             }
-        if (MusicData.Files.isEmpty())
-            return Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(),
-                verticalArrangement = Arrangement.spacedBy(30.dp, Alignment.CenterVertically),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                MusicData.Error?.let { Text(it, color = Color.Tomato) }
-                Text("Select music folder and data file in settings")
-            }
+            return
+        }
 
-        MusicDataFilter.Updater()
-        ExpandableBox({ (if (it) "" else MusicDataFilter.title).ifBlank { "Filter" } }) {
+        ExpandableBox({ (if (it) "" else title).ifBlank { "Filter" } }) {
             TextFieldWithHints(
-                MusicDataFilter.author,
-                { MusicDataFilter.author = it },
-                options = MusicData.Folders,
+                value = viewModel.authorFilter,
+                onValueChange = { viewModel.authorFilter = it },
+                options = folders,
                 label = { Text("Author") },
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
-                MusicDataFilter.name,
-                { MusicDataFilter.name = it },
+                value = viewModel.nameFilter,
+                onValueChange = { viewModel.nameFilter = it },
                 label = { Text("Name") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
@@ -108,14 +97,14 @@ fun MusicList() {
             @Composable
             fun <T> FilterDropdown(all: List<T>, cur: MutableList<T>, name: String) {
                 SelectableDropdownMenu(
-                    all,
-                    { it in cur },
-                    { it, selected ->
+                    items = all,
+                    isSelected = { it in cur },
+                    setSelected = { it, selected ->
                         if (selected) {
                             if (it !in cur) cur.add(it)
                         } else cur.remove(it)
                     },
-                    { it.toString() }) {
+                    itemName = { it.toString() }) {
                     Text(
                         when (cur.size) {
                             all.size, 0 -> "All $name"
@@ -124,13 +113,13 @@ fun MusicList() {
                     )
                 }
             }
-            FilterDropdown(MusicMood.entries, MusicDataFilter.mood, "mood")
-            FilterDropdown(MusicLike.entries, MusicDataFilter.like, "like")
-            FilterDropdown(MusicLang.entries, MusicDataFilter.lang, "lang")
-            FilterDropdown(MusicEmo.entries, MusicDataFilter.emo, "emo")
-            FilterDropdown(MusicData.Tags, MusicDataFilter.tags, "tags")
-            FilterDropdown(MusicData.Folders, MusicDataFilter.folders, "folders")
-            FilterDropdown(MusicPublic.entries, MusicDataFilter.public, "public")
+            FilterDropdown(MusicMood.entries, viewModel.selectedMoods, "mood")
+            FilterDropdown(MusicLike.entries, viewModel.selectedLikes, "like")
+            FilterDropdown(MusicLang.entries, viewModel.selectedLangs, "lang")
+            FilterDropdown(MusicEmo.entries, viewModel.selectedEmos, "emo")
+            FilterDropdown(tags, viewModel.selectedTags, "tags")
+            FilterDropdown(folders, viewModel.selectedFolders, "folders")
+            FilterDropdown(MusicPublic.entries, viewModel.selectedPublics, "public")
         }
 
         Row(
@@ -140,26 +129,25 @@ fun MusicList() {
         ) {
             val noSelected = mList.selectedItems.isEmpty()
             TextButton({
-                mList.selectedItems = if (noSelected) MusicDataFilter.files else listOf()
+                mList.selectedItems = if (noSelected) files else listOf()
             }) { Text(if (noSelected) "Select all" else "Unselect all") }
             Text(
-                if (noSelected) "${MusicDataFilter.files.size}"
-                else "${mList.selectedItems.size}/${MusicDataFilter.files.size}",
+                if (noSelected) "${files.size}"
+                else "${mList.selectedItems.size}/${files.size}",
                 style = MaterialTheme.typography.labelSmall,
             )
-            TextButton({ MusicDataFilter.reset() }) { Text("Reset filter") }
+            TextButton({ viewModel.resetFilters() }) { Text("Reset filter") }
         }
-        MusicData.Error?.let { Text(it, color = Color.Tomato) }
+        error?.let { Text(it, color = Color.Tomato) }
         val refreshScope = rememberCoroutineScope()
         var refreshing by remember { mutableStateOf(false) }
-        val context = LocalContext.current
         val state = rememberPullRefreshState(
             refreshing,
-            { refreshScope.launch { MusicData.updateFiles(context) } }
+            { refreshScope.launch { viewModel.updateFiles() } }
         )
         Box(Modifier.pullRefresh(state)) {
             mList.LazyColumn(
-                items = MusicDataFilter.files,
+                items = files,
                 itemKey = { it.rpath },
                 dropdownItems = { file, closeDropdown ->
                     if (mList.selectedItems.isEmpty())

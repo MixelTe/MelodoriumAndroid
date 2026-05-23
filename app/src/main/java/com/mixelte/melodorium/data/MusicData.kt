@@ -13,13 +13,15 @@ import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.room.Room
 import com.mixelte.melodorium.data.db.AppDatabase
-import com.mixelte.melodorium.data.db.File
 import com.mixelte.melodorium.data.db.FileDao
+import com.mixelte.melodorium.data.db.FileEntity
+import com.mixelte.melodorium.models.MusicDatafile
+import com.mixelte.melodorium.models.MusicFile
+import com.mixelte.melodorium.models.MusicFileData
 import com.mixelte.melodorium.ui.getMusicDatafile
 import com.mixelte.melodorium.ui.getMusicRootFolder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -126,7 +128,7 @@ object MusicData {
         }
     }
 
-    private fun loadFilesFromCache(filesCache: List<File>, musicData: List<MusicFileData>) {
+    private fun loadFilesFromCache(filesCache: List<FileEntity>, musicData: List<MusicFileData>) {
         val files = mutableListOf<MusicFile>()
         for (file in filesCache) {
             val data = musicData.find { it.RPath == file.rpath }
@@ -144,7 +146,7 @@ object MusicData {
         musicData: List<MusicFileData>
     ) {
         val files = mutableListOf<MusicFile>()
-        val cache = mutableListOf<File>()
+        val cache = mutableListOf<FileEntity>()
         val contentResolver = context.contentResolver
 
         val dirNodes = mutableListOf(
@@ -182,7 +184,7 @@ object MusicData {
                                     docId
                                 )
                                 files.add(MusicFile(data, uri))
-                                cache.add(File(0, rpath, uri.toString()))
+                                cache.add(FileEntity(0, rpath, uri.toString()))
                             }
                         }
                     }
@@ -194,136 +196,5 @@ object MusicData {
         fileDao.deleteAll()
         fileDao.insertAll(cache)
         Files = files
-    }
-}
-
-private fun String.getFilename(): String {
-    val cut = this.lastIndexOf('/')
-    if (cut >= 0) return this.substring(cut + 1)
-    return this
-}
-
-private fun String.getFolderName(): String {
-    val cut = this.lastIndexOf('/')
-    if (cut >= 0) return this.substring(0, cut)
-    return ""
-}
-
-@Serializable
-data class MusicDatafile(
-    @Suppress("PropertyName") var Version: Int,
-    @Suppress("PropertyName") var FolderAuthor: Map<String, String>,
-    @Suppress("PropertyName") var Files: List<MusicFileData>,
-)
-
-@Serializable
-data class MusicFileData(
-    @Suppress("PropertyName") var RPath: String,
-    @Suppress("PropertyName") val IsLoaded: Boolean,
-    @Suppress("PropertyName") val Mood: MusicMood,
-    @Suppress("PropertyName") val Like: MusicLike,
-    @Suppress("PropertyName") val Lang: MusicLang,
-    @Suppress("PropertyName") val Emo: MusicEmo,
-    @Suppress("PropertyName") val Public: Boolean,
-    @Suppress("PropertyName") val Tag: String,
-)
-
-class MusicFile(
-    data: MusicFileData,
-    val uri: Uri,
-) {
-    val name: String
-    val author: String
-    val nameNorm: String
-    val authorNorm: String
-    val rpath = data.RPath
-    val folder = data.RPath.getFolderName()
-    val folderWithSpaces = folder.replace('_', ' ')
-    val ext: String
-    val mood = data.Mood
-    val like = data.Like
-    val lang = data.Lang
-    val emo = data.Emo
-    val public = data.Public
-    val publicEnum = MusicPublic.fromBool(data.Public)
-    val tag = data.Tag
-    val tags = data.Tag.split(";")
-
-    init {
-        val fname = rpath.getFilename()
-        val exti = fname.lastIndexOf(".")
-        val sname = if (exti >= 0) fname.substring(0, exti) else fname
-        ext = if (exti >= 0) fname.substring(exti + 1) else ""
-        if ("_-_" in sname) {
-            val parts = sname.split("_-_")
-            author = parts[0].replace("_", " ")
-            name = parts[1].replace("_", " ")
-        } else {
-            author = ""
-            name = sname.replace("_", " ")
-        }
-        nameNorm = name.lowercase()
-        authorNorm = author.lowercase()
-    }
-
-    val tagsLabel: String
-        get() {
-            var tags = ""
-            tags += " ["
-            tags += mood.name.substring(0, 2)
-            if (emo == MusicEmo.Happy) tags += "+"
-            else if (emo == MusicEmo.Sad) tags += "-"
-            tags += ";"
-            tags += like.name.substring(0, 2) + ";"
-            tags += lang.name.substring(0, 2)
-            if (public) tags += ";P"
-            if (tag != "")
-                tags += "|$tag"
-            tags += "]"
-            return tags
-        }
-}
-
-enum class MusicMood {
-    Rock,
-    Energistic,
-    Cheerful,
-    Calm,
-    Sleep,
-}
-
-enum class MusicLike {
-    Best,
-    Like,
-    Good,
-    Normal,
-}
-
-enum class MusicLang {
-    No,
-    Ru,
-    An,
-    En,
-    Fr,
-    Ge,
-    It,
-    As,
-}
-
-enum class MusicEmo {
-    Happy,
-    Neutral,
-    Sad,
-}
-
-enum class MusicPublic {
-    Private,
-    Public;
-
-    companion object {
-        fun fromBool(bool: Boolean) = when (bool) {
-            true -> Public
-            false -> Private
-        }
     }
 }

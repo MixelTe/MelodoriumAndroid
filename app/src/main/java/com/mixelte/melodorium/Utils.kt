@@ -23,3 +23,15 @@ fun Modifier.trueScale(scale: Float): Modifier {
             }
         }
 }
+
+fun String.getFilename(): String {
+    val cut = this.lastIndexOf('/')
+    if (cut >= 0) return this.substring(cut + 1)
+    return this
+}
+
+fun String.getFolderName(): String {
+    val cut = this.lastIndexOf('/')
+    if (cut >= 0) return this.substring(0, cut)
+    return ""
+}

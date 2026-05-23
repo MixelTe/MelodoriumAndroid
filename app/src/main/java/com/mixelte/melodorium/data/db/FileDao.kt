@@ -7,13 +7,13 @@ import androidx.room.Insert
 @Dao
 interface FileDao {
     @Query("SELECT * FROM file")
-    fun getAll(): List<File>
+    fun getAll(): List<FileEntity>
 
     @Query("SELECT * FROM file WHERE rpath LIKE :rpath LIMIT 1")
-    fun findByRpath(rpath: String): File
+    fun findByRpath(rpath: String): FileEntity
 
     @Insert
-    fun insertAll(users: List<File>)
+    fun insertAll(users: List<FileEntity>)
 
     @Query("DELETE FROM file")
     fun deleteAll()

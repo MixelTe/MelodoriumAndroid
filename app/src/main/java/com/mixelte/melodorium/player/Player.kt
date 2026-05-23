@@ -8,7 +8,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player.Listener
 import androidx.media3.session.MediaController
 import com.mixelte.melodorium.data.MusicDataFilter
-import com.mixelte.melodorium.data.MusicFile
+import com.mixelte.melodorium.models.MusicFile
 import com.mixelte.melodorium.swap
 
 object Player : Listener {
@@ -149,14 +149,5 @@ object Player : Listener {
             if (autoAdd && playlist.last() == it)
                 addNextTrack()
         }
-    }
-}
-
-class PlayerItem(val file: MusicFile) {
-    val mediaId = (lastMediaId++).toString()
-    val mediaItem = MediaItem.Builder().setUri(file.uri).setMediaId(this.mediaId).build()
-
-    companion object {
-        var lastMediaId = 1
     }
 }
