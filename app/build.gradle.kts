@@ -8,12 +8,12 @@ plugins {
 
 android {
     namespace = "com.mixelte.melodorium"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.mixelte.melodorium"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
 
