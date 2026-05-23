@@ -1,4 +1,4 @@
-package com.mixelte.melodorium.components
+package com.mixelte.melodorium.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource

@@ -1,4 +1,4 @@
-package com.mixelte.melodorium.pages
+package com.mixelte.melodorium.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
@@ -31,12 +31,11 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.mixelte.melodorium.components.BetterLazyColumn
-import com.mixelte.melodorium.components.ExpandableBox
-import com.mixelte.melodorium.components.SelectableDropdownMenu
-import com.mixelte.melodorium.components.TextFieldWithHints
+import com.mixelte.melodorium.ui.components.BetterLazyColumn
+import com.mixelte.melodorium.ui.components.ExpandableBox
+import com.mixelte.melodorium.ui.components.SelectableDropdownMenu
+import com.mixelte.melodorium.ui.components.TextFieldWithHints
 import com.mixelte.melodorium.data.MusicData
 import com.mixelte.melodorium.data.MusicDataFilter
 import com.mixelte.melodorium.data.MusicEmo

@@ -1,4 +1,4 @@
-package com.mixelte.melodorium.db
+package com.mixelte.melodorium.data.db
 
 import androidx.room.Database
 import androidx.room.RoomDatabase

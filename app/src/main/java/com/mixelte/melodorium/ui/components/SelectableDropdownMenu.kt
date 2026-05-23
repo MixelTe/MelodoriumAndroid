@@ -1,4 +1,4 @@
-package com.mixelte.melodorium.components
+package com.mixelte.melodorium.ui.components
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.clickable
@@ -15,9 +15,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf

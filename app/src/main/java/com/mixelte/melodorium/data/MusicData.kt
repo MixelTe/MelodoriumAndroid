@@ -12,11 +12,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.room.Room
-import com.mixelte.melodorium.db.AppDatabase
-import com.mixelte.melodorium.db.File
-import com.mixelte.melodorium.db.FileDao
-import com.mixelte.melodorium.pages.getMusicDatafile
-import com.mixelte.melodorium.pages.getMusicRootFolder
+import com.mixelte.melodorium.data.db.AppDatabase
+import com.mixelte.melodorium.data.db.File
+import com.mixelte.melodorium.data.db.FileDao
+import com.mixelte.melodorium.ui.getMusicDatafile
+import com.mixelte.melodorium.ui.getMusicRootFolder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable

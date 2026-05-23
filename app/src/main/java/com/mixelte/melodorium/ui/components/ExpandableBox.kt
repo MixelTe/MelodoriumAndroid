@@ -1,4 +1,4 @@
-package com.mixelte.melodorium.components
+package com.mixelte.melodorium.ui.components
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility

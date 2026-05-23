@@ -1,4 +1,4 @@
-package com.mixelte.melodorium.pages
+package com.mixelte.melodorium.ui
 
 import android.content.Context
 import android.content.Intent

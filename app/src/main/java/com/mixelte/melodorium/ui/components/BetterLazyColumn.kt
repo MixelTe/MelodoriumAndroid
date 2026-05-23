@@ -1,4 +1,4 @@
-package com.mixelte.melodorium.components
+package com.mixelte.melodorium.ui.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable

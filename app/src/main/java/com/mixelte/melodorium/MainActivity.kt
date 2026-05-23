@@ -38,14 +38,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.common.util.concurrent.MoreExecutors
 import com.mixelte.melodorium.data.MusicData
-import com.mixelte.melodorium.pages.MusicList
-import com.mixelte.melodorium.pages.Playlist
-import com.mixelte.melodorium.pages.Settings
+import com.mixelte.melodorium.ui.MusicList
+import com.mixelte.melodorium.ui.Playlist
+import com.mixelte.melodorium.ui.Settings
 import com.mixelte.melodorium.player.PlaybackService
 import com.mixelte.melodorium.player.Player
 import com.mixelte.melodorium.ui.theme.MelodoriumTheme
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 @Serializable
