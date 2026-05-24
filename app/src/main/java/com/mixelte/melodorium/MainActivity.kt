@@ -5,6 +5,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -53,8 +58,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 combine(
-                    app.settingsRepository.musicDatafile,
-                    app.settingsRepository.musicRootFolder
+                    app.settingsRepository.musicDatafile, app.settingsRepository.musicRootFolder
                 ) { file, root ->
                     if (file != null && root != null) Pair(file, root) else null
                 }.collect { pair ->
@@ -88,36 +92,58 @@ class MainActivity : ComponentActivity() {
             AppTheme {
                 Scaffold(
                     bottomBar = {
-                        if (!isPlayerOpen) {
+                        AnimatedVisibility(
+                            visible = !isPlayerOpen,
+                            enter = slideInVertically(initialOffsetY = { it }, animationSpec = tween(400)),
+                            exit = slideOutVertically(targetOffsetY = { it }, animationSpec = tween(400))
+                        ) {
                             Column {
                                 MiniPlayer(
                                     state = playerState,
                                     onPlayPauseClick = { playerViewModel.togglePlayPause() },
                                     onPreviousClick = { playerViewModel.prevTrack() },
                                     onNextClick = { playerViewModel.nextTrack() },
-                                    onPlayerClick = { navController.navigate(Screen.FullscreenPlayer.route) }
-                                )
+                                    onPlayerClick = { navController.navigate(Screen.FullscreenPlayer.route) })
 
                                 BottomNavigationBar(navController = navController, currentRoute = currentRoute)
                             }
                         }
-                    }
-                ) { innerPadding ->
+                    }) { innerPadding ->
                     NavHost(
                         navController = navController,
                         startDestination = startDestination,
-                        modifier = Modifier.padding(innerPadding)
                     ) {
                         composable(Screen.WaveSettings.route) {
-                            WaveSettingsRoute(waveSettingsViewModel)
+                            Box(modifier = Modifier.padding(innerPadding)) {
+                                WaveSettingsRoute(waveSettingsViewModel)
+                            }
                         }
                         composable(Screen.Library.route) {
+                            Box(modifier = Modifier.padding(innerPadding)) {
 //                            LibraryScreen()
+                            }
                         }
                         composable(Screen.Settings.route) {
-                            SettingsRoute(settingsViewModel)
+                            Box(modifier = Modifier.padding(innerPadding)) {
+                                SettingsRoute(settingsViewModel)
+                            }
                         }
-                        composable(Screen.FullscreenPlayer.route) {
+                        composable(
+                            route = Screen.FullscreenPlayer.route,
+                            enterTransition = {
+                                slideInVertically(
+                                    initialOffsetY = { it },
+                                    animationSpec = tween(400)
+                                )
+                            },
+                            exitTransition = { slideOutVertically(targetOffsetY = { it }, animationSpec = tween(400)) },
+                            popExitTransition = {
+                                slideOutVertically(
+                                    targetOffsetY = { it },
+                                    animationSpec = tween(400)
+                                )
+                            }
+                        ) {
                             PlayerRoute(
                                 playerViewModel,
                                 onBackClick = { navController.popBackStack() }
@@ -138,8 +164,7 @@ class MainActivity : ComponentActivity() {
                 val app = application as MelodoriumApplication
                 val controller = controllerFuture.get()
                 app.playbackManager.setMediaController(controller)
-            },
-            MoreExecutors.directExecutor()
+            }, MoreExecutors.directExecutor()
         )
     }
 }
