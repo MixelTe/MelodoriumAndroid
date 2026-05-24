@@ -8,5 +8,6 @@ data class FileEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int,
     var rpath: String,
-    var uri: String
+    var uri: String,
+    val artworkPath: String? = null
 )

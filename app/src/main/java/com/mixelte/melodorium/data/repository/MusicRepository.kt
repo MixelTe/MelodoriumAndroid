@@ -1,6 +1,7 @@
 package com.mixelte.melodorium.data.repository
 
 import android.content.Context
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.core.net.toUri
@@ -17,6 +18,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import java.io.File
+import java.io.FileOutputStream
+import java.security.MessageDigest
 
 class MusicRepository(
     private val context: Context,
@@ -27,6 +31,9 @@ class MusicRepository(
 
     private val _folders = MutableStateFlow<List<String>>(emptyList())
     val folders: StateFlow<List<String>> = _folders.asStateFlow()
+
+    private val _authors = MutableStateFlow<List<String>>(emptyList())
+    val authors: StateFlow<List<String>> = _authors.asStateFlow()
 
     private val _tags = MutableStateFlow<List<String>>(emptyList())
     val tags: StateFlow<List<String>> = _tags.asStateFlow()
@@ -55,6 +62,9 @@ class MusicRepository(
 
                 val fileDao = database.fileDao()
                 val cachedFiles = fileDao.getAll()
+                if (clearCache) {
+                    context.cacheDir.resolve("artworks").deleteRecursively()
+                }
 
                 val loadedFiles = if (cachedFiles.isNotEmpty() && !clearCache) {
                     loadFromCache(cachedFiles, obj.Files)
@@ -75,6 +85,12 @@ class MusicRepository(
                     .distinct()
                     .sortedWith(String.CASE_INSENSITIVE_ORDER)
 
+                _authors.value = loadedFiles
+                    .map { it.author }
+                    .filter { it.isNotEmpty() }
+                    .distinct()
+                    .sortedWith(String.CASE_INSENSITIVE_ORDER)
+
             } catch (e: Exception) {
                 _error.value = e.localizedMessage ?: e.toString()
             } finally {
@@ -88,7 +104,10 @@ class MusicRepository(
     ): List<MusicFile> {
         return filesCache.mapNotNull { cached ->
             val data = musicData.find { it.RPath == cached.rpath }
-            if (data?.IsLoaded == true) MusicFile(data, cached.uri.toUri()) else null
+            if (data?.IsLoaded == true) {
+                val artUri = cached.artworkPath?.let { Uri.fromFile(File(it)) }
+                MusicFile(data, cached.uri.toUri(), artUri)
+            } else null
         }
     }
 
@@ -140,8 +159,12 @@ class MusicRepository(
                         val data = musicData.find { it.RPath == relPath }
                         if (data?.IsLoaded == true) {
                             val uri = DocumentsContract.buildDocumentUriUsingTree(rootUri, docId)
-                            files.add(MusicFile(data, uri))
-                            cache.add(FileEntity(id = 0, rpath = relPath, uri = uri.toString()))
+
+                            val cachedArtPath = extractAndCacheArtwork(uri, relPath)
+                            val artUri = cachedArtPath?.let { Uri.fromFile(File(it)) }
+
+                            files.add(MusicFile(data, uri, artUri))
+                            cache.add(FileEntity(id = 0, rpath = relPath, uri = uri.toString(), artUri?.toString()))
                         }
                     }
                 }
@@ -152,5 +175,37 @@ class MusicRepository(
         fileDao.insertAll(cache)
 
         return@withContext files
+    }
+
+    private fun extractAndCacheArtwork(fileUri: Uri, relativePath: String): String? {
+        val retriever = MediaMetadataRetriever()
+        try {
+            context.contentResolver.openFileDescriptor(fileUri, "r")?.use { pfd ->
+                retriever.setDataSource(pfd.fileDescriptor)
+                val embeddedPicture = retriever.embeddedPicture
+
+                if (embeddedPicture != null) {
+                    val artDir = File(context.cacheDir, "artworks").apply { mkdirs() }
+
+                    val fileName = relativePath.md5() + ".jpg"
+                    val artFile = File(artDir, fileName)
+
+                    FileOutputStream(artFile).use { fos ->
+                        fos.write(embeddedPicture)
+                    }
+                    return artFile.absolutePath
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            retriever.release()
+        }
+        return null
+    }
+
+    private fun String.md5(): String {
+        val md = MessageDigest.getInstance("MD5")
+        return md.digest(this.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 }

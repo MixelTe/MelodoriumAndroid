@@ -4,11 +4,20 @@ package com.mixelte.melodorium.player
 import androidx.media3.common.MediaItem
 import androidx.media3.session.MediaController
 import com.mixelte.melodorium.domain.models.MusicFile
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import androidx.media3.common.Player as Media3Player
 
 class PlaybackManager : Media3Player.Listener {
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var progressJob: Job? = null
     private var mediaController: MediaController? = null
 
     private val _playlist = MutableStateFlow<List<PlayerItem>>(emptyList())
@@ -20,19 +29,30 @@ class PlaybackManager : Media3Player.Listener {
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying = _isPlaying.asStateFlow()
 
+    private val _currentPosition = MutableStateFlow(0L)
+    val currentPosition = _currentPosition.asStateFlow()
+
+    private val _duration = MutableStateFlow(0L)
+    val duration = _duration.asStateFlow()
+
     var onTrackEndedListener: (() -> Unit)? = null
 
     fun setMediaController(controller: MediaController) {
         this.mediaController = controller
         controller.addListener(this)
         _isPlaying.value = controller.isPlaying
+        _duration.value = controller.duration.coerceAtLeast(0L)
+        _currentPosition.value = controller.currentPosition.coerceAtLeast(0L)
+
         restorePlaylistFromController(controller)
+        startProgressTimer()
     }
 
     private fun restorePlaylistFromController(controller: MediaController) {
         val items = mutableListOf<PlayerItem>()
         for (i in 0 until controller.mediaItemCount) {
             val mediaItem = controller.getMediaItemAt(i)
+            /* TODO */
             // Здесь предполагается наличие фабрики или кэша для воссоздания PlayerItem из MediaItem
         }
         _playlist.value = items
@@ -90,6 +110,13 @@ class PlaybackManager : Media3Player.Listener {
         mediaController?.seekTo(index, 0)
     }
 
+    fun seekTo(positionMs: Long) {
+        mediaController?.let { controller ->
+            controller.seekTo(positionMs)
+            _currentPosition.value = positionMs
+        }
+    }
+
     fun next() = mediaController?.seekToNextMediaItem()
     fun prev() = mediaController?.seekToPreviousMediaItem()
 
@@ -137,6 +164,22 @@ class PlaybackManager : Media3Player.Listener {
         _playlist.value = emptyList()
         _currentItem.value = null
         mediaController?.clearMediaItems()
+    }
+
+    private fun startProgressTimer() {
+        if (progressJob?.isActive == true) return
+
+        progressJob = scope.launch {
+            while (this.isActive) {
+                mediaController?.let { controller ->
+                    _currentPosition.value = controller.currentPosition.coerceAtLeast(0L)
+                    if (_duration.value != controller.duration) {
+                        _duration.value = controller.duration.coerceAtLeast(0L)
+                    }
+                }
+                delay(500)
+            }
+        }
     }
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {

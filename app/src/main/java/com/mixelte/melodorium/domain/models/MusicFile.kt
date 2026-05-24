@@ -7,6 +7,7 @@ import com.mixelte.melodorium.getFolderName
 class MusicFile(
     data: MusicFileData,
     val uri: Uri,
+    val artworkUri: Uri? = null,
 ) {
     val name: String
     val author: String

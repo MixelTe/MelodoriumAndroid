@@ -1,36 +1,85 @@
-package com.mixelte.melodorium.ui.playlist
+package com.mixelte.melodorium.ui.features.player
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mixelte.melodorium.domain.MusicFilterManager
+import com.mixelte.melodorium.domain.models.MusicLang
+import com.mixelte.melodorium.domain.models.MusicLike
+import com.mixelte.melodorium.domain.models.MusicMood
 import com.mixelte.melodorium.player.PlaybackManager
 import com.mixelte.melodorium.player.PlayerItem
+import com.mixelte.melodorium.toTimeString
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class PlaylistViewModel(
+data class PlayerUiState(
+    val trackName: String? = null,
+    val artistName: String? = null,
+    val trackMood: MusicMood? = null,
+    val trackLike: MusicLike? = null,
+    val trackLang: MusicLang? = null,
+    val trackArtwork: Uri? = null,
+    val isPlaying: Boolean = false,
+    val progress: Float = 0f,
+    val currentTime: String? = null,
+    val fullTime: String? = null,
+)
+
+class PlayerViewModel(
     private val playbackManager: PlaybackManager,
     private val filterManager: MusicFilterManager
 ) : ViewModel() {
-    val playlist = playbackManager.playlist
-    val currentTrack = playbackManager.currentItem
-    val isPlaying = playbackManager.isPlaying
+    private val playlist = playbackManager.playlist
+    private val currentTrack = playbackManager.currentItem
+    private val currentPosition = playbackManager.currentPosition
+    private val duration = playbackManager.duration
+    private val isPlaying = playbackManager.isPlaying
 
-    var autoAddNext by mutableStateOf(true)
+    private val _autoAddNext = MutableStateFlow(true)
+    val autoAddNext = _autoAddNext.asStateFlow()
+
+    val playerState =
+        combine(currentTrack, isPlaying, currentPosition, duration) { track, isPlaying, currentPosition, duration ->
+            val progress = if (duration > 0) currentPosition.toFloat() / duration else 0F
+            PlayerUiState(
+                trackName = track?.file?.name,
+                artistName = track?.file?.author,
+                trackMood = track?.file?.mood,
+                trackLike = track?.file?.like,
+                trackLang = track?.file?.lang,
+                trackArtwork = track?.file?.artworkUri,
+                isPlaying = isPlaying,
+                progress = progress,
+                currentTime = currentPosition.toTimeString(),
+                fullTime = duration.toTimeString(),
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlayerUiState())
 
     init {
         playbackManager.onTrackEndedListener = {
-            if (autoAddNext) {
+            if (_autoAddNext.value) {
                 addNextSmartTrack()
+            }
+        }
+        viewModelScope.launch {
+            combine(filterManager.isLoading, playbackManager.playlist) { isLoading, playlist ->
+                !isLoading && playlist.isEmpty()
+            }.collect {
+                if (it) {
+                    addNextSmartTrack()
+                }
             }
         }
     }
 
-    fun playPause() {
-        if (!isPlaying.value && autoAddNext && playlist.value.isEmpty()) {
+    fun togglePlayPause() {
+        if (!isPlaying.value && _autoAddNext.value && playlist.value.isEmpty()) {
             addNextSmartTrack()
         }
         playbackManager.playPause()
@@ -97,4 +146,5 @@ class PlaylistViewModel(
     fun clearPlaylist() = playbackManager.clear()
     fun nextTrack() = playbackManager.next()
     fun prevTrack() = playbackManager.prev()
+    fun seekTo(positionPercent: Float) = playbackManager.seekTo((positionPercent * duration.value).toLong())
 }

@@ -6,7 +6,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.mixelte.melodorium.MainActivity
-import com.mixelte.melodorium.Routes
+import com.mixelte.melodorium.Screen
 
 class PlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
@@ -19,7 +19,7 @@ class PlaybackService : MediaSessionService() {
             this, 0,
             Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra("navigate_to", Routes.serialize(Routes.Playlist))
+                putExtra("navigate_to", Screen.FullscreenPlayer.route)
             },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.update
 data class FilterState(
     val authorQuery: String = "",
     val nameQuery: String = "",
+    val selectedAuthors: List<String> = emptyList(),
     val selectedMoods: List<MusicMood> = MusicMood.entries,
     val selectedLikes: List<MusicLike> = MusicLike.entries,
     val selectedLangs: List<MusicLang> = MusicLang.entries,
@@ -28,6 +29,10 @@ data class FilterState(
 class MusicFilterManager(
     private val musicRepository: MusicRepository
 ) {
+    val authors = musicRepository.authors
+    val tags = musicRepository.tags
+    val isLoading = musicRepository.isLoading
+
     private val _state = MutableStateFlow(FilterState())
     val state: StateFlow<FilterState> = _state.asStateFlow()
 
@@ -42,6 +47,7 @@ class MusicFilterManager(
         files.filter { file ->
             (authorLower.isEmpty() || authorLower in file.authorNorm) &&
                     (nameLower.isEmpty() || nameLower in file.nameNorm) &&
+                    (filters.selectedAuthors.isEmpty() || file.author in filters.selectedAuthors) &&
                     (filters.selectedMoods.isEmpty() || file.mood in filters.selectedMoods) &&
                     (filters.selectedLikes.isEmpty() || file.like in filters.selectedLikes) &&
                     (filters.selectedLangs.isEmpty() || file.lang in filters.selectedLangs) &&
@@ -52,10 +58,19 @@ class MusicFilterManager(
         }.sortedBy { it.rpath }
     }
 
+    val error = combine(isLoading, musicRepository.files, musicRepository.error) { isLoading, files, error ->
+        error ?: if (!isLoading && files.isEmpty()) "Выберите файлы в настройках" else null
+    }
+
+
     val title = _state.map { filters -> buildTitle(filters) }
 
     fun updateAuthorQuery(query: String) = _state.update { it.copy(authorQuery = query) }
     fun updateNameQuery(query: String) = _state.update { it.copy(nameQuery = query) }
+
+    fun toggleAuthor(author: String, isSelected: Boolean? = null) = _state.update { s ->
+        s.copy(selectedAuthors = updateCollection(s.selectedAuthors, author, isSelected))
+    }
 
     fun toggleMood(mood: MusicMood, isSelected: Boolean? = null) = _state.update { s ->
         s.copy(selectedMoods = updateCollection(s.selectedMoods, mood, isSelected))

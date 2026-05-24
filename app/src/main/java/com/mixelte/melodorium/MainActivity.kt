@@ -3,114 +3,126 @@ package com.mixelte.melodorium
 import android.content.ComponentName
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.outlined.List
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarDefaults
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.google.common.util.concurrent.MoreExecutors
 import com.mixelte.melodorium.player.PlaybackService
-import com.mixelte.melodorium.ui.musiclist.MusicListScreen
-import com.mixelte.melodorium.ui.musiclist.MusicListViewModel
-import com.mixelte.melodorium.ui.playlist.PlaylistScreen
-import com.mixelte.melodorium.ui.playlist.PlaylistViewModel
-import com.mixelte.melodorium.ui.settings.SettingsScreen
-import com.mixelte.melodorium.ui.settings.SettingsViewModel
-import com.mixelte.melodorium.ui.theme.MelodoriumTheme
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
+import com.mixelte.melodorium.ui.common.BottomNavigationBar
+import com.mixelte.melodorium.ui.common.MiniPlayer
+import com.mixelte.melodorium.ui.features.player.PlayerRoute
+import com.mixelte.melodorium.ui.features.player.PlayerViewModel
+import com.mixelte.melodorium.ui.features.settings.SettingsRoute
+import com.mixelte.melodorium.ui.features.settings.SettingsViewModel
+import com.mixelte.melodorium.ui.features.wave_settings.WaveSettingsRoute
+import com.mixelte.melodorium.ui.features.wave_settings.WaveSettingsViewModel
+import com.mixelte.melodorium.ui.theme.AppTheme
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
 
-@Serializable
-sealed class Routes {
-    @Serializable
-    object MusicList : Routes()
+sealed class Screen(val route: String) {
+    object Library : Screen("library")
+    object WaveSettings : Screen("wave_settings")
+    object Settings : Screen("settings")
 
-    @Serializable
-    object Playlist : Routes()
-
-    @Serializable
-    object Settings : Routes()
-
-    companion object {
-        fun serialize(route: Routes): String =
-            Json.encodeToString(route)
-
-        fun deserialize(serialized: String): Routes? =
-            runCatching { Json.decodeFromString<Routes>(serialized) }.getOrNull()
-    }
+    object FullscreenPlayer : Screen("fullscreen_player")
 }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
 
         val app = application as MelodoriumApplication
 
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                combine(
+                    app.settingsRepository.musicDatafile,
+                    app.settingsRepository.musicRootFolder
+                ) { file, root ->
+                    if (file != null && root != null) Pair(file, root) else null
+                }.collect { pair ->
+                    pair?.let { (file, root) ->
+                        app.musicRepository.loadMusicData(datafileUri = file, rootFolderUri = root)
+                    }
+                }
+            }
+        }
+
         setContent {
-            val navController = rememberNavController()
+            val playerViewModel: PlayerViewModel = viewModel {
+                PlayerViewModel(app.playbackManager, app.musicFilterManager)
+            }
+            val playerState by playerViewModel.playerState.collectAsStateWithLifecycle()
 
             val settingsViewModel: SettingsViewModel = viewModel {
-                SettingsViewModel(app.settingsRepository)
-            }
-            val musicListViewModel: MusicListViewModel = viewModel {
-                MusicListViewModel(
-                    app.settingsRepository,
-                    app.musicRepository,
-                    app.musicFilterManager,
-                    app.playbackManager
-                )
-            }
-            val playlistViewModel: PlaylistViewModel = viewModel {
-                PlaylistViewModel(app.playbackManager, app.musicFilterManager)
+                SettingsViewModel(app.settingsRepository, app.musicRepository)
             }
 
-            val route = Routes.deserialize(intent.getStringExtra("navigate_to") ?: "")
+            val waveSettingsViewModel: WaveSettingsViewModel = viewModel {
+                WaveSettingsViewModel(app.musicFilterManager)
+            }
 
-            MelodoriumTheme {
-                enableEdgeToEdge(
-                    navigationBarStyle = SystemBarStyle.auto(
-                        NavigationBarDefaults.containerColor.toArgb(),
-                        NavigationBarDefaults.containerColor.toArgb(),
-                    )
-                )
-                NavHost(navController, startDestination = route ?: Routes.MusicList) {
-                    composable<Routes.MusicList> {
-                        Layout(Routes.MusicList, navController::navigate) { MusicListScreen(musicListViewModel) }
+            val startDestination = intent.getStringExtra("navigate_to") ?: Screen.WaveSettings.route
+            val navController = rememberNavController()
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentRoute = navBackStackEntry?.destination?.route
+            val isPlayerOpen = currentRoute == Screen.FullscreenPlayer.route
+
+            AppTheme {
+                Scaffold(
+                    bottomBar = {
+                        if (!isPlayerOpen) {
+                            Column {
+                                MiniPlayer(
+                                    state = playerState,
+                                    onPlayPauseClick = { playerViewModel.togglePlayPause() },
+                                    onPreviousClick = { playerViewModel.prevTrack() },
+                                    onNextClick = { playerViewModel.nextTrack() },
+                                    onPlayerClick = { navController.navigate(Screen.FullscreenPlayer.route) }
+                                )
+
+                                BottomNavigationBar(navController = navController, currentRoute = currentRoute)
+                            }
+                        }
                     }
-                    composable<Routes.Playlist> {
-                        Layout(Routes.Playlist, navController::navigate) { PlaylistScreen(playlistViewModel) }
-                    }
-                    composable<Routes.Settings> {
-                        Layout(Routes.Settings, navController::navigate) { SettingsScreen(settingsViewModel) }
+                ) { innerPadding ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = startDestination,
+                        modifier = Modifier.padding(innerPadding)
+                    ) {
+                        composable(Screen.WaveSettings.route) {
+                            WaveSettingsRoute(waveSettingsViewModel)
+                        }
+                        composable(Screen.Library.route) {
+//                            LibraryScreen()
+                        }
+                        composable(Screen.Settings.route) {
+                            SettingsRoute(settingsViewModel)
+                        }
+                        composable(Screen.FullscreenPlayer.route) {
+                            PlayerRoute(
+                                playerViewModel,
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
                     }
                 }
             }
@@ -129,71 +141,5 @@ class MainActivity : ComponentActivity() {
             },
             MoreExecutors.directExecutor()
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun Layout(route: Any, navigate: (route: Any) -> Unit, page: @Composable () -> Unit) {
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
-                ),
-                title = {
-                    Text(
-                        when (route) {
-                            Routes.MusicList -> "Music"
-                            Routes.Playlist -> "Playlist"
-                            Routes.Settings -> "Settings"
-                            else -> ""
-                        }
-                    )
-                }
-            )
-        },
-        bottomBar = {
-            NavigationBar {
-                data class Route(
-                    val route: Any,
-                    val name: String,
-                    val iconFilled: ImageVector,
-                    val iconOutlined: ImageVector
-                )
-                listOf(
-                    Route(Routes.MusicList, "MusicList", Icons.Filled.Home, Icons.Outlined.Home),
-                    Route(
-                        Routes.Playlist,
-                        "Playlist",
-                        Icons.AutoMirrored.Filled.List,
-                        Icons.AutoMirrored.Outlined.List
-                    ),
-                    Route(Routes.Settings, "Settings", Icons.Filled.Settings, Icons.Outlined.Settings),
-                ).forEach {
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                if (route == it.route) it.iconFilled else it.iconOutlined,
-                                contentDescription = it.name
-                            )
-                        },
-//                        label = { Text(it.name) },
-                        selected = route == it.route,
-                        onClick = { navigate(it.route) }
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .padding(innerPadding)
-                .consumeWindowInsets(innerPadding)
-        ) {
-            page()
-        }
     }
 }
