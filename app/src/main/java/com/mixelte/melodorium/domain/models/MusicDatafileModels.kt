@@ -1,4 +1,4 @@
-package com.mixelte.melodorium.models
+package com.mixelte.melodorium.domain.models
 
 import kotlinx.serialization.Serializable
 

@@ -3,7 +3,7 @@ package com.mixelte.melodorium.player
 
 import androidx.media3.common.MediaItem
 import androidx.media3.session.MediaController
-import com.mixelte.melodorium.models.MusicFile
+import com.mixelte.melodorium.domain.models.MusicFile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import androidx.media3.common.Player as Media3Player
@@ -57,6 +57,27 @@ class PlaybackManager : Media3Player.Listener {
         val updatedList = _playlist.value.toMutableList().apply { removeAt(index) }
         _playlist.value = updatedList
         mediaController?.removeMediaItem(index)
+    }
+
+    fun removeTracks(indices: List<Int>) {
+        val validSortedIndices = indices
+            .filter { it in 0 until _playlist.value.size }
+            .distinct()
+            .sortedDescending()
+
+        if (validSortedIndices.isEmpty()) return
+
+        val updatedList = _playlist.value.toMutableList().apply {
+            for (index in validSortedIndices) {
+                removeAt(index)
+            }
+        }
+
+        _playlist.value = updatedList
+
+        for (index in validSortedIndices) {
+            mediaController?.removeMediaItem(index)
+        }
     }
 
     fun playPause() {

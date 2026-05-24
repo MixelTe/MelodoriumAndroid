@@ -38,12 +38,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.common.util.concurrent.MoreExecutors
-import com.mixelte.melodorium.data.MusicData
 import com.mixelte.melodorium.player.PlaybackService
-import com.mixelte.melodorium.player.Player
-import com.mixelte.melodorium.ui.Playlist
 import com.mixelte.melodorium.ui.musiclist.MusicListScreen
 import com.mixelte.melodorium.ui.musiclist.MusicListViewModel
+import com.mixelte.melodorium.ui.playlist.PlaylistScreen
+import com.mixelte.melodorium.ui.playlist.PlaylistViewModel
 import com.mixelte.melodorium.ui.settings.SettingsScreen
 import com.mixelte.melodorium.ui.settings.SettingsViewModel
 import com.mixelte.melodorium.ui.theme.MelodoriumTheme
@@ -83,10 +82,17 @@ class MainActivity : ComponentActivity() {
                 SettingsViewModel(app.settingsRepository)
             }
             val musicListViewModel: MusicListViewModel = viewModel {
-                MusicListViewModel(app.settingsRepository, app.musicRepository)
+                MusicListViewModel(
+                    app.settingsRepository,
+                    app.musicRepository,
+                    app.musicFilterManager,
+                    app.playbackManager
+                )
+            }
+            val playlistViewModel: PlaylistViewModel = viewModel {
+                PlaylistViewModel(app.playbackManager, app.musicFilterManager)
             }
 
-            MusicData.MusicDataLoader()
             val route = Routes.deserialize(intent.getStringExtra("navigate_to") ?: "")
 
             MelodoriumTheme {
@@ -101,7 +107,7 @@ class MainActivity : ComponentActivity() {
                         Layout(Routes.MusicList, navController::navigate) { MusicListScreen(musicListViewModel) }
                     }
                     composable<Routes.Playlist> {
-                        Layout(Routes.Playlist, navController::navigate) { Playlist() }
+                        Layout(Routes.Playlist, navController::navigate) { PlaylistScreen(playlistViewModel) }
                     }
                     composable<Routes.Settings> {
                         Layout(Routes.Settings, navController::navigate) { SettingsScreen(settingsViewModel) }
@@ -117,7 +123,9 @@ class MainActivity : ComponentActivity() {
         val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
         controllerFuture.addListener(
             {
-                Player.setMediaController(controllerFuture.get())
+                val app = application as MelodoriumApplication
+                val controller = controllerFuture.get()
+                app.playbackManager.setMediaController(controller)
             },
             MoreExecutors.directExecutor()
         )

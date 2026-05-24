@@ -19,7 +19,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,13 +28,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.mixelte.melodorium.models.MusicEmo
-import com.mixelte.melodorium.models.MusicFile
-import com.mixelte.melodorium.models.MusicLang
-import com.mixelte.melodorium.models.MusicLike
-import com.mixelte.melodorium.models.MusicMood
-import com.mixelte.melodorium.models.MusicPublic
-import com.mixelte.melodorium.player.Player
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mixelte.melodorium.domain.models.MusicEmo
+import com.mixelte.melodorium.domain.models.MusicFile
+import com.mixelte.melodorium.domain.models.MusicLang
+import com.mixelte.melodorium.domain.models.MusicLike
+import com.mixelte.melodorium.domain.models.MusicMood
+import com.mixelte.melodorium.domain.models.MusicPublic
 import com.mixelte.melodorium.ui.components.BetterLazyColumn
 import com.mixelte.melodorium.ui.components.ExpandableBox
 import com.mixelte.melodorium.ui.components.SelectableDropdownMenu
@@ -47,12 +46,13 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun MusicListScreen(viewModel: MusicListViewModel) {
-    val title by viewModel.title.collectAsState()
-    val files by viewModel.filteredFiles.collectAsState()
-    val folders by viewModel.folders.collectAsState()
-    val tags by viewModel.tags.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val error by viewModel.error.collectAsState()
+    val filters by viewModel.filters.collectAsStateWithLifecycle()
+    val title by viewModel.title.collectAsStateWithLifecycle()
+    val files by viewModel.files.collectAsStateWithLifecycle()
+    val folders by viewModel.folders.collectAsStateWithLifecycle()
+    val tags by viewModel.tags.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
     val mList = remember { BetterLazyColumn<MusicFile>() }
 
     Column(modifier = Modifier.padding(5.dp)) {
@@ -80,30 +80,26 @@ fun MusicListScreen(viewModel: MusicListViewModel) {
 
         ExpandableBox({ (if (it) "" else title).ifBlank { "Filter" } }) {
             TextFieldWithHints(
-                value = viewModel.authorFilter,
-                onValueChange = { viewModel.authorFilter = it },
+                value = filters.authorQuery,
+                onValueChange = viewModel::onAuthorQueryChanged,
                 options = folders,
                 label = { Text("Author") },
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
-                value = viewModel.nameFilter,
-                onValueChange = { viewModel.nameFilter = it },
+                value = filters.nameQuery,
+                onValueChange = viewModel::onNameQueryChanged,
                 label = { Text("Name") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
             @Composable
-            fun <T> FilterDropdown(all: List<T>, cur: MutableList<T>, name: String) {
+            fun <T> FilterDropdown(all: List<T>, cur: List<T>, toggle: (T, Boolean) -> Unit, name: String) {
                 SelectableDropdownMenu(
                     items = all,
                     isSelected = { it in cur },
-                    setSelected = { it, selected ->
-                        if (selected) {
-                            if (it !in cur) cur.add(it)
-                        } else cur.remove(it)
-                    },
+                    setSelected = toggle,
                     itemName = { it.toString() }) {
                     Text(
                         when (cur.size) {
@@ -113,13 +109,13 @@ fun MusicListScreen(viewModel: MusicListViewModel) {
                     )
                 }
             }
-            FilterDropdown(MusicMood.entries, viewModel.selectedMoods, "mood")
-            FilterDropdown(MusicLike.entries, viewModel.selectedLikes, "like")
-            FilterDropdown(MusicLang.entries, viewModel.selectedLangs, "lang")
-            FilterDropdown(MusicEmo.entries, viewModel.selectedEmos, "emo")
-            FilterDropdown(tags, viewModel.selectedTags, "tags")
-            FilterDropdown(folders, viewModel.selectedFolders, "folders")
-            FilterDropdown(MusicPublic.entries, viewModel.selectedPublics, "public")
+            FilterDropdown(MusicMood.entries, filters.selectedMoods, viewModel::onMoodToggled, "mood")
+            FilterDropdown(MusicLike.entries, filters.selectedLikes, viewModel::onLikeToggled, "like")
+            FilterDropdown(MusicLang.entries, filters.selectedLangs, viewModel::onLangToggled, "lang")
+            FilterDropdown(MusicEmo.entries, filters.selectedEmos, viewModel::onEmoToggled, "emo")
+            FilterDropdown(tags, filters.selectedTags, viewModel::onTagToggled, "tags")
+            FilterDropdown(folders, filters.selectedFolders, viewModel::onFolderToggled, "folders")
+            FilterDropdown(MusicPublic.entries, filters.selectedPublics, viewModel::onPublicToggled, "public")
         }
 
         Row(
@@ -136,7 +132,7 @@ fun MusicListScreen(viewModel: MusicListViewModel) {
                 else "${mList.selectedItems.size}/${files.size}",
                 style = MaterialTheme.typography.labelSmall,
             )
-            TextButton({ viewModel.resetFilters() }) { Text("Reset filter") }
+            TextButton({ viewModel.onResetFilters() }) { Text("Reset filter") }
         }
         error?.let { Text(it, color = Color.Tomato) }
         val refreshScope = rememberCoroutineScope()
@@ -154,14 +150,14 @@ fun MusicListScreen(viewModel: MusicListViewModel) {
                         DropdownMenuItem(
                             text = { Text("Add to playlist") },
                             onClick = {
-                                Player.addTrack(file)
+                                viewModel.addTrackToPlaylist(file)
                                 closeDropdown()
                             })
                     else
                         DropdownMenuItem(
                             text = { Text("Add selected to playlist") },
                             onClick = {
-                                Player.addTracks(mList.selectedItems)
+                                viewModel.addTracksToPlaylist(mList.selectedItems)
                                 mList.selectedItems = listOf()
                                 closeDropdown()
                             })
@@ -169,7 +165,7 @@ fun MusicListScreen(viewModel: MusicListViewModel) {
                         text = { Text("Add selected to playlist randomly") },
                         enabled = mList.selectedItems.isNotEmpty(),
                         onClick = {
-                            Player.addTracks(mList.selectedItems.shuffled())
+                            viewModel.addTracksToPlaylist(mList.selectedItems.shuffled())
                             mList.selectedItems = listOf()
                             closeDropdown()
                         })

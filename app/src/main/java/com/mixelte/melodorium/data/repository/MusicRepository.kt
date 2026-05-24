@@ -8,9 +8,9 @@ import androidx.documentfile.provider.DocumentFile
 import com.mixelte.melodorium.data.db.AppDatabase
 import com.mixelte.melodorium.data.db.FileDao
 import com.mixelte.melodorium.data.db.FileEntity
-import com.mixelte.melodorium.models.MusicDatafile
-import com.mixelte.melodorium.models.MusicFile
-import com.mixelte.melodorium.models.MusicFileData
+import com.mixelte.melodorium.domain.models.MusicDatafile
+import com.mixelte.melodorium.domain.models.MusicFile
+import com.mixelte.melodorium.domain.models.MusicFileData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

@@ -1,4 +1,4 @@
-package com.mixelte.melodorium.models
+package com.mixelte.melodorium.domain.models
 
 import android.net.Uri
 import com.mixelte.melodorium.getFilename

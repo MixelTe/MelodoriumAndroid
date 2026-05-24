@@ -1,7 +1,7 @@
 package com.mixelte.melodorium.player
 
 import androidx.media3.common.MediaItem
-import com.mixelte.melodorium.models.MusicFile
+import com.mixelte.melodorium.domain.models.MusicFile
 
 
 class PlayerItem(val file: MusicFile) {
