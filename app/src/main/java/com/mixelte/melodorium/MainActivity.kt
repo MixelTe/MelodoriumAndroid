@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val playerViewModel: PlayerViewModel = viewModel {
-                PlayerViewModel(app.playbackManager, app.musicFilterManager)
+                PlayerViewModel(app.playbackManager, app.musicFilterManager, app.musicRepository)
             }
             val playerState by playerViewModel.playerState.collectAsStateWithLifecycle()
 

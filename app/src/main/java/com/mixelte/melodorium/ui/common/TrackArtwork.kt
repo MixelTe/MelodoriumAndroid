@@ -28,6 +28,9 @@ fun TrackArtwork(
         contentScale = ContentScale.Crop,
 
         placeholder = painterResource(R.drawable.ic_default_track_cover),
-        error = painterResource(R.drawable.ic_default_track_cover)
+        error = painterResource(R.drawable.ic_default_track_cover),
+//        onError = { state ->
+//            println("Coil Error: ${state.result.throwable}\nImage:$artworkModel")
+//        }
     )
 }

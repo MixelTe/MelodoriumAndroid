@@ -105,7 +105,10 @@ class MusicRepository(
         return filesCache.mapNotNull { cached ->
             val data = musicData.find { it.RPath == cached.rpath }
             if (data?.IsLoaded == true) {
-                val artUri = cached.artworkPath?.let { Uri.fromFile(File(it)) }
+                val artUri = cached.artworkPath?.let { path ->
+                    val file = File(path)
+                    if (file.exists()) path else null
+                }
                 MusicFile(data, cached.uri.toUri(), artUri)
             } else null
         }
@@ -160,11 +163,8 @@ class MusicRepository(
                         if (data?.IsLoaded == true) {
                             val uri = DocumentsContract.buildDocumentUriUsingTree(rootUri, docId)
 
-                            val cachedArtPath = extractAndCacheArtwork(uri, relPath)
-                            val artUri = cachedArtPath?.let { Uri.fromFile(File(it)) }
-
-                            files.add(MusicFile(data, uri, artUri))
-                            cache.add(FileEntity(id = 0, rpath = relPath, uri = uri.toString(), artUri?.toString()))
+                            files.add(MusicFile(data, uri))
+                            cache.add(FileEntity(id = 0, rpath = relPath, uri = uri.toString()))
                         }
                     }
                 }
@@ -177,6 +177,25 @@ class MusicRepository(
         return@withContext files
     }
 
+    suspend fun getArtworkFile(musicFile: MusicFile): File? = withContext(Dispatchers.IO) {
+        val fileDao = database.fileDao()
+
+        val cachedPath = musicFile.artworkPath
+        if (!cachedPath.isNullOrEmpty()) {
+            val file = File(cachedPath)
+            if (file.exists()) return@withContext file
+        }
+
+        val extractedPath = extractAndCacheArtwork(musicFile.uri, musicFile.rpath)
+
+        if (extractedPath != null) {
+            fileDao.updateArtworkPath(musicFile.rpath, extractedPath)
+            musicFile.artworkPath = extractedPath
+        }
+
+        return@withContext extractedPath?.let { File(it) }
+    }
+
     private fun extractAndCacheArtwork(fileUri: Uri, relativePath: String): String? {
         val retriever = MediaMetadataRetriever()
         try {
@@ -185,7 +204,7 @@ class MusicRepository(
                 val embeddedPicture = retriever.embeddedPicture
 
                 if (embeddedPicture != null) {
-                    val artDir = File(context.cacheDir, "artworks").apply { mkdirs() }
+                    val artDir = File(context.filesDir, "artworks").apply { mkdirs() }
 
                     val fileName = relativePath.md5() + ".jpg"
                     val artFile = File(artDir, fileName)

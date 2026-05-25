@@ -35,7 +35,7 @@ class PlaybackManager : Media3Player.Listener {
     private val _duration = MutableStateFlow(0L)
     val duration = _duration.asStateFlow()
 
-    var onTrackEndedListener: (() -> Unit)? = null
+    var onTrackChangedListener: (() -> Unit)? = null
 
     fun setMediaController(controller: MediaController) {
         this.mediaController = controller
@@ -190,9 +190,6 @@ class PlaybackManager : Media3Player.Listener {
         val items = _playlist.value
         val newCurrent = mediaItem?.let { currentMedia -> items.find { it.mediaId == currentMedia.mediaId } }
         _currentItem.value = newCurrent
-
-        if (items.lastOrNull() == newCurrent) {
-            onTrackEndedListener?.invoke()
-        }
+        onTrackChangedListener?.invoke()
     }
 }

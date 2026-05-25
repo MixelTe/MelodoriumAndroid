@@ -1,8 +1,8 @@
 package com.mixelte.melodorium.ui.features.player
 
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mixelte.melodorium.data.repository.MusicRepository
 import com.mixelte.melodorium.domain.MusicFilterManager
 import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
@@ -12,11 +12,13 @@ import com.mixelte.melodorium.player.PlayerItem
 import com.mixelte.melodorium.toTimeString
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
 
 data class PlayerUiState(
     val trackName: String? = null,
@@ -24,7 +26,7 @@ data class PlayerUiState(
     val trackMood: MusicMood? = null,
     val trackLike: MusicLike? = null,
     val trackLang: MusicLang? = null,
-    val trackArtwork: Uri? = null,
+    val trackArtwork: File? = null,
     val isPlaying: Boolean = false,
     val progress: Float = 0f,
     val currentTime: String? = null,
@@ -33,7 +35,8 @@ data class PlayerUiState(
 
 class PlayerViewModel(
     private val playbackManager: PlaybackManager,
-    private val filterManager: MusicFilterManager
+    private val filterManager: MusicFilterManager,
+    private val musicRepository: MusicRepository,
 ) : ViewModel() {
     private val playlist = playbackManager.playlist
     private val currentTrack = playbackManager.currentItem
@@ -44,8 +47,17 @@ class PlayerViewModel(
     private val _autoAddNext = MutableStateFlow(true)
     val autoAddNext = _autoAddNext.asStateFlow()
 
+    private val _currentArtwork = MutableStateFlow<File?>(null)
+    val currentArtwork: StateFlow<File?> = _currentArtwork.asStateFlow()
+
     val playerState =
-        combine(currentTrack, isPlaying, currentPosition, duration) { track, isPlaying, currentPosition, duration ->
+        combine(
+            currentTrack,
+            isPlaying,
+            currentPosition,
+            duration,
+            currentArtwork
+        ) { track, isPlaying, currentPosition, duration, trackArtwork ->
             val progress = if (duration > 0) currentPosition.toFloat() / duration else 0F
             PlayerUiState(
                 trackName = track?.file?.name,
@@ -53,7 +65,7 @@ class PlayerViewModel(
                 trackMood = track?.file?.mood,
                 trackLike = track?.file?.like,
                 trackLang = track?.file?.lang,
-                trackArtwork = track?.file?.artworkUri,
+                trackArtwork = trackArtwork,
                 isPlaying = isPlaying,
                 progress = progress,
                 currentTime = currentPosition.toTimeString(),
@@ -62,9 +74,16 @@ class PlayerViewModel(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlayerUiState())
 
     init {
-        playbackManager.onTrackEndedListener = {
-            if (_autoAddNext.value) {
-                addNextSmartTrack()
+        playbackManager.onTrackChangedListener = {
+            if (playbackManager.playlist.value.lastOrNull() == playbackManager.currentItem.value) {
+                if (_autoAddNext.value) {
+                    addNextSmartTrack()
+                }
+            }
+            viewModelScope.launch {
+                _currentArtwork.value = playbackManager.currentItem.value?.file?.let {
+                    musicRepository.getArtworkFile(it)
+                }
             }
         }
         viewModelScope.launch {
