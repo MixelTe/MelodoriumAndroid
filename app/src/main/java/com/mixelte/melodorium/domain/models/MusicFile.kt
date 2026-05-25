@@ -3,11 +3,12 @@ package com.mixelte.melodorium.domain.models
 import android.net.Uri
 import com.mixelte.melodorium.getFilename
 import com.mixelte.melodorium.getFolderName
+import java.io.File
 
 class MusicFile(
     data: MusicFileData,
     val uri: Uri,
-    var artworkPath: String? = null,
+    var artworkFile: File? = null,
 ) {
     val name: String
     val author: String

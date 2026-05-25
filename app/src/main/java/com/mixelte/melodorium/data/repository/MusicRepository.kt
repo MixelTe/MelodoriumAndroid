@@ -105,11 +105,11 @@ class MusicRepository(
         return filesCache.mapNotNull { cached ->
             val data = musicData.find { it.RPath == cached.rpath }
             if (data?.IsLoaded == true) {
-                val artUri = cached.artworkPath?.let { path ->
+                val artFile = cached.artworkPath?.let { path ->
                     val file = File(path)
-                    if (file.exists()) path else null
+                    if (file.exists()) file else null
                 }
-                MusicFile(data, cached.uri.toUri(), artUri)
+                MusicFile(data, cached.uri.toUri(), artFile)
             } else null
         }
     }
@@ -180,17 +180,15 @@ class MusicRepository(
     suspend fun getArtworkFile(musicFile: MusicFile): File? = withContext(Dispatchers.IO) {
         val fileDao = database.fileDao()
 
-        val cachedPath = musicFile.artworkPath
-        if (!cachedPath.isNullOrEmpty()) {
-            val file = File(cachedPath)
-            if (file.exists()) return@withContext file
+        if (musicFile.artworkFile != null) {
+            return@withContext musicFile.artworkFile
         }
 
         val extractedPath = extractAndCacheArtwork(musicFile.uri, musicFile.rpath)
 
         if (extractedPath != null) {
             fileDao.updateArtworkPath(musicFile.rpath, extractedPath)
-            musicFile.artworkPath = extractedPath
+            musicFile.artworkFile = File(extractedPath)
         }
 
         return@withContext extractedPath?.let { File(it) }

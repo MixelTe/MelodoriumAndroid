@@ -42,6 +42,7 @@ import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
 import com.mixelte.melodorium.ui.features.player.PlayerUiState
+import com.mixelte.melodorium.ui.features.player.PlayerUiTrack
 
 @Composable
 fun MiniPlayer(
@@ -56,7 +57,7 @@ fun MiniPlayer(
             .fillMaxWidth()
             .padding(top = 8.dp)
             .shadow(
-                elevation = 4.dp,
+                elevation = 8.dp,
                 shape = RoundedCornerShape(12.dp),
                 clip = false,
             )
@@ -81,18 +82,14 @@ fun MiniPlayer(
                             .fillMaxSize()
                             .background(Color.DarkGray)
                     )
-                    TrackArtwork(state.trackArtwork, size=64.dp)
-                    state.trackMood?.let { mood ->
-                        state.trackLike?.let { like ->
-                            state.trackLang?.let { lang ->
-                                Box(
-                                    Modifier
-                                        .align(Alignment.BottomStart)
-                                        .offset(x = (-2).dp, y = 2.dp)
-                                ) {
-                                    MusicMoodBadge(mood, like, lang)
-                                }
-                            }
+                    TrackArtwork(state.track?.artwork, size = 64.dp)
+                    state.track?.let { track ->
+                        Box(
+                            Modifier
+                                .align(Alignment.BottomStart)
+                                .offset(x = (-2).dp, y = 2.dp)
+                        ) {
+                            MusicMoodBadge(track.mood, track.like, track.lang)
                         }
                     }
                 }
@@ -103,14 +100,14 @@ fun MiniPlayer(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = state.trackName ?: "Не выбрано",
+                        text = state.track?.title ?: "Не выбрано",
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = state.artistName ?: "",
+                        text = state.track?.artist ?: "",
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -129,7 +126,7 @@ fun MiniPlayer(
                     }
                     IconButton(onClick = onPlayPauseClick) {
                         Icon(
-                            imageVector = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            imageVector = if (state.track?.isPlaying == true) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = "Старт/Пауза",
                         )
                     }
@@ -158,12 +155,14 @@ fun MiniPlayerPreview() {
     var isPlaying by remember { mutableStateOf(false) }
     MiniPlayer(
         state = PlayerUiState(
-            trackName = "Трава у дома",
-            artistName = "Земляне",
-            trackMood = MusicMood.Energistic,
-            trackLike = MusicLike.Like,
-            trackLang = MusicLang.Ru,
-            isPlaying = false,
+            track = PlayerUiTrack(
+                id = "",
+                title = "Трава у дома",
+                artist = "Земляне",
+                mood = MusicMood.Energistic,
+                like = MusicLike.Like,
+                lang = MusicLang.Ru,
+            ),
             progress = 0.45f,
             currentTime = "1:24",
             fullTime = "2:03"

@@ -1,5 +1,6 @@
 package com.mixelte.melodorium.ui.features.player
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,14 +26,20 @@ import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,29 +55,60 @@ import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
 import com.mixelte.melodorium.ui.common.TrackArtwork
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerRoute(viewModel: PlayerViewModel, onBackClick: () -> Unit) {
     val state by viewModel.playerState.collectAsStateWithLifecycle()
-    PlayerScreen(
-        state,
-        onBackClick,
-        onPlayPauseClick = { viewModel.togglePlayPause() },
-        onPreviousClick = { viewModel.prevTrack() },
-        onNextClick = { viewModel.nextTrack() },
-        onSeekTo = { viewModel.seekTo(it) }
-    )
+    val tracks by viewModel.tracks.collectAsStateWithLifecycle()
+    var showPlaylist by rememberSaveable { mutableStateOf(false) }
+
+    BackHandler {
+        onBackClick()
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        PlayerScreen(
+            state,
+            onBackClick,
+            onPlaylistButtonClick = { showPlaylist = true },
+            onPlayPauseClick = { viewModel.togglePlayPause() },
+            onPreviousClick = { viewModel.prevTrack() },
+            onNextClick = { viewModel.nextTrack() },
+            onSeekTo = { viewModel.seekTo(it) },
+        )
+
+        if (showPlaylist) {
+            ModalBottomSheet(
+                onDismissRequest = { showPlaylist = false },
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ) {
+                PlaylistScreen(
+                    tracks,
+                    onBackClick = { showPlaylist = false },
+                    onClearQueueClick = { viewModel.clearPlaylist() },
+                    onTrackClick = { viewModel.playTrack(it) },
+                )
+            }
+        }
+    }
 }
 
 @Composable
 fun PlayerScreen(
     state: PlayerUiState,
     onBackClick: () -> Unit,
+    onPlaylistButtonClick: () -> Unit,
     onPlayPauseClick: () -> Unit,
     onPreviousClick: () -> Unit,
     onNextClick: () -> Unit,
     onSeekTo: (Float) -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -90,9 +128,9 @@ fun PlayerScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                SuggestionChip(onClick = {}, label = { Text(state.trackMood?.toName() ?: "Затишье") })
-                SuggestionChip(onClick = {}, label = { Text(state.trackLike?.toName() ?: "Скрыто") })
-                SuggestionChip(onClick = {}, label = { Text(state.trackLang?.toName() ?: "\uD83C\uDFB5") })
+                SuggestionChip(onClick = {}, label = { Text(state.track?.mood?.toName() ?: "Затишье") })
+                SuggestionChip(onClick = {}, label = { Text(state.track?.like?.toName() ?: "Скрыто") })
+                SuggestionChip(onClick = {}, label = { Text(state.track?.lang?.toName() ?: "\uD83C\uDFB5") })
             }
         }
 
@@ -105,7 +143,7 @@ fun PlayerScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = state.trackName ?: "Не выбрано",
+                text = state.track?.title ?: "Не выбрано",
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
@@ -113,7 +151,7 @@ fun PlayerScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = state.artistName ?: "",
+                text = state.track?.artist ?: "",
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
@@ -129,7 +167,7 @@ fun PlayerScreen(
                 shape = RoundedCornerShape(32.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondary)
             ) {
-                TrackArtwork(state.trackArtwork, size=260.dp)
+                TrackArtwork(state.track?.artwork, size = 260.dp)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -174,7 +212,7 @@ fun PlayerScreen(
                 ) {
                     IconButton(onClick = onPlayPauseClick) {
                         Icon(
-                            imageVector = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            imageVector = if (state.track?.isPlaying == true) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = "Старт/Пауза",
                             tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(32.dp)
@@ -226,7 +264,7 @@ fun PlayerScreen(
                     tint = MaterialTheme.colorScheme.onBackground
                 )
             }
-            IconButton(onClick = {}) {
+            IconButton(onClick = onPlaylistButtonClick) {
                 Icon(
                     painterResource(id = R.drawable.ic_queue_music),
                     contentDescription = "Плейлист",
@@ -242,14 +280,18 @@ fun PlayerScreen(
 fun PlayerScreenPreview() {
     PlayerScreen(
         PlayerUiState(
-            trackName = "Трава у дома",
-            artistName = "Земляне",
-            trackMood = MusicMood.Energistic,
-            trackLike = MusicLike.Like,
-            trackLang = MusicLang.Ru,
-            isPlaying = false,
+            track = PlayerUiTrack(
+                id = "",
+                title = "Трава у дома",
+                artist = "Земляне",
+                mood = MusicMood.Energistic,
+                like = MusicLike.Like,
+                lang = MusicLang.Ru,
+            ),
             progress = 0.45f,
             currentTime = "1:24",
             fullTime = "2:03"
-        ), {}, {}, {}, {}, {})
+        ),
+        {}, {}, {}, {}, {},
+    ) {}
 }

@@ -146,7 +146,15 @@ class MainActivity : ComponentActivity() {
                         ) {
                             PlayerRoute(
                                 playerViewModel,
-                                onBackClick = { navController.popBackStack() }
+                                onBackClick = {
+                                    if (navController.previousBackStackEntry != null) {
+                                        navController.popBackStack()
+                                    } else {
+                                        navController.navigate(Screen.WaveSettings.route) {
+                                            popUpTo(0) { inclusive = true }
+                                        }
+                                    }
+                                }
                             )
                         }
                     }

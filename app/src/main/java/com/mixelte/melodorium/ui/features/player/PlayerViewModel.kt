@@ -8,7 +8,6 @@ import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
 import com.mixelte.melodorium.player.PlaybackManager
-import com.mixelte.melodorium.player.PlayerItem
 import com.mixelte.melodorium.toTimeString
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,14 +19,19 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
 
-data class PlayerUiState(
-    val trackName: String? = null,
-    val artistName: String? = null,
-    val trackMood: MusicMood? = null,
-    val trackLike: MusicLike? = null,
-    val trackLang: MusicLang? = null,
-    val trackArtwork: File? = null,
+data class PlayerUiTrack(
+    val id: String,
+    val title: String,
+    val artist: String,
+    val mood: MusicMood,
+    val like: MusicLike,
+    val lang: MusicLang,
+    val artwork: File? = null,
     val isPlaying: Boolean = false,
+)
+
+data class PlayerUiState(
+    val track: PlayerUiTrack? = null,
     val progress: Float = 0f,
     val currentTime: String? = null,
     val fullTime: String? = null,
@@ -44,9 +48,6 @@ class PlayerViewModel(
     private val duration = playbackManager.duration
     private val isPlaying = playbackManager.isPlaying
 
-    private val _autoAddNext = MutableStateFlow(true)
-    val autoAddNext = _autoAddNext.asStateFlow()
-
     private val _currentArtwork = MutableStateFlow<File?>(null)
     val currentArtwork: StateFlow<File?> = _currentArtwork.asStateFlow()
 
@@ -60,25 +61,45 @@ class PlayerViewModel(
         ) { track, isPlaying, currentPosition, duration, trackArtwork ->
             val progress = if (duration > 0) currentPosition.toFloat() / duration else 0F
             PlayerUiState(
-                trackName = track?.file?.name,
-                artistName = track?.file?.author,
-                trackMood = track?.file?.mood,
-                trackLike = track?.file?.like,
-                trackLang = track?.file?.lang,
-                trackArtwork = trackArtwork,
-                isPlaying = isPlaying,
+                track = track?.let {
+                    val f = it.file
+                    PlayerUiTrack(
+                        f.rpath,
+                        f.name,
+                        f.author,
+                        f.mood,
+                        f.like,
+                        f.lang,
+                        trackArtwork,
+                        isPlaying
+                    )
+                },
                 progress = progress,
                 currentTime = currentPosition.toTimeString(),
                 fullTime = duration.toTimeString(),
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlayerUiState())
 
+    val tracks = combine(playlist, currentTrack, currentArtwork) { items, currentTrack, _ ->
+        items.map {
+            val file = it.file
+            PlayerUiTrack(
+                file.rpath,
+                file.name,
+                file.author,
+                file.mood,
+                file.like,
+                file.lang,
+                file.artworkFile,
+                currentTrack?.file?.rpath == file.rpath,
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     init {
         playbackManager.onTrackChangedListener = {
             if (playbackManager.playlist.value.lastOrNull() == playbackManager.currentItem.value) {
-                if (_autoAddNext.value) {
-                    addNextSmartTrack()
-                }
+                addNextSmartTrack()
             }
             viewModelScope.launch {
                 _currentArtwork.value = playbackManager.currentItem.value?.file?.let {
@@ -98,7 +119,7 @@ class PlayerViewModel(
     }
 
     fun togglePlayPause() {
-        if (!isPlaying.value && _autoAddNext.value && playlist.value.isEmpty()) {
+        if (!isPlaying.value && playlist.value.isEmpty()) {
             addNextSmartTrack()
         }
         playbackManager.playPause()
@@ -123,42 +144,44 @@ class PlayerViewModel(
         }
     }
 
-    fun removeTrack(item: PlayerItem) {
-        val index = playlist.value.indexOf(item)
+    fun removeTrack(item: PlayerUiTrack) {
+        val index = playlist.value.indexOfFirst { it.file.rpath == item.id }
         playbackManager.removeTrack(index)
     }
 
-    fun removeTracks(items: List<PlayerItem>) {
-        val indices = items.map { playlist.value.indexOf(it) }.filter { it >= 0 }
+    fun removeTracks(items: List<PlayerUiTrack>) {
+        val indices = items.map { item -> playlist.value.indexOfFirst { it.file.rpath == item.id } }
+            .filter { it >= 0 }
         playbackManager.removeTracks(indices)
     }
 
-    fun shufflePlaylist(selectedItems: List<PlayerItem> = emptyList()) {
+    fun shufflePlaylist(selectedItems: List<PlayerUiTrack> = emptyList()) {
         if (selectedItems.isEmpty()) {
             playbackManager.shuffle(null)
         } else {
-            val indices = selectedItems.map { playlist.value.indexOf(it) }.filter { it >= 0 }
+            val indices = selectedItems.map { item -> playlist.value.indexOfFirst { it.file.rpath == item.id } }
+                .filter { it >= 0 }
             playbackManager.shuffle(indices)
         }
     }
 
-    fun moveTrackUp(item: PlayerItem) {
-        val i = playlist.value.indexOf(item)
+    fun moveTrackUp(item: PlayerUiTrack) {
+        val i = playlist.value.indexOfFirst { it.file.rpath == item.id }
         if (i > 0) playbackManager.moveTrack(i, i - 1)
     }
 
-    fun moveTrackDown(item: PlayerItem) {
-        val i = playlist.value.indexOf(item)
+    fun moveTrackDown(item: PlayerUiTrack) {
+        val i = playlist.value.indexOfFirst { it.file.rpath == item.id }
         if (i >= 0 && i < playlist.value.size - 1) playbackManager.moveTrack(i, i + 1)
     }
 
-    fun moveTrackToEnd(item: PlayerItem) {
-        val i = playlist.value.indexOf(item)
+    fun moveTrackToEnd(item: PlayerUiTrack) {
+        val i = playlist.value.indexOfFirst { it.file.rpath == item.id }
         if (i >= 0) playbackManager.moveTrack(i, playlist.value.size - 1)
     }
 
-    fun playTrack(item: PlayerItem) {
-        val i = playlist.value.indexOf(item)
+    fun playTrack(item: PlayerUiTrack) {
+        val i = playlist.value.indexOfFirst { it.file.rpath == item.id }
         if (i >= 0) playbackManager.seekTo(i)
     }
 
