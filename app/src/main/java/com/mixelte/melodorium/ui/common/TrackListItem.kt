@@ -94,7 +94,7 @@ fun TrackListItem(
 fun TrackListItemPreview() {
     TrackListItem(
         PlayerUiTrack(
-            id = "1",
+            id = 1,
             title = "Трава у дома",
             artist = "Земляне",
             mood = MusicMood.Energistic,

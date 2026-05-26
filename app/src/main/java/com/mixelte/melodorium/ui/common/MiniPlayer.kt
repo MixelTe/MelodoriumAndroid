@@ -156,7 +156,7 @@ fun MiniPlayerPreview() {
     MiniPlayer(
         state = PlayerUiState(
             track = PlayerUiTrack(
-                id = "",
+                id = 0,
                 title = "Трава у дома",
                 artist = "Земляне",
                 mood = MusicMood.Energistic,

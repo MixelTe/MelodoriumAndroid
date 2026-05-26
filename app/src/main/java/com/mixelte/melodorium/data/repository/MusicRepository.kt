@@ -7,25 +7,39 @@ import android.provider.DocumentsContract
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import com.mixelte.melodorium.data.db.AppDatabase
+import com.mixelte.melodorium.data.db.CurrentPlaylistEntity
 import com.mixelte.melodorium.data.db.FileDao
 import com.mixelte.melodorium.data.db.FileEntity
+import com.mixelte.melodorium.data.db.PlaybackStateEntity
 import com.mixelte.melodorium.domain.models.MusicDatafile
 import com.mixelte.melodorium.domain.models.MusicFile
 import com.mixelte.melodorium.domain.models.MusicFileData
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileOutputStream
 import java.security.MessageDigest
 
+data class PlaylistEntry(
+    val id: Long,
+    val file: MusicFile
+)
+
 class MusicRepository(
     private val context: Context,
     private val database: AppDatabase
 ) {
+    private val fileDao = database.fileDao()
+    private val playlistDao = database.playlistDao()
+
     private val _files = MutableStateFlow<List<MusicFile>>(emptyList())
     val files: StateFlow<List<MusicFile>> = _files.asStateFlow()
 
@@ -38,11 +52,42 @@ class MusicRepository(
     private val _tags = MutableStateFlow<List<String>>(emptyList())
     val tags: StateFlow<List<String>> = _tags.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(false)
+    private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
+
+    val currentPlaylist: Flow<List<PlaylistEntry>> =
+        combine(playlistDao.getCurrentPlaylistFlow(), _files, _isLoading) { entities, allFiles, isLoading ->
+            Triple(entities, allFiles, isLoading)
+        }
+            .filter { (_, _, isLoading) -> !isLoading }
+            .map { (entities, allFiles, _) ->
+                entities.mapNotNull { entity ->
+                    val file = allFiles.find { it.rpath == entity.rpath }
+                    file?.let { PlaylistEntry(entity.id, it) }
+                }
+            }
+
+    suspend fun saveCurrentPlaylist(entries: List<PlaylistEntry>) {
+        val entities = entries.mapIndexed { index, entry ->
+            CurrentPlaylistEntity(
+                id = entry.id, // id == 0 -> new
+                rpath = entry.file.rpath,
+                position = index
+            )
+        }
+        playlistDao.savePlaylist(entities)
+    }
+
+    suspend fun getPlaybackState() = playlistDao.getPlaybackState()
+
+    suspend fun updatePlaybackState(rpath: String?, positionMs: Long, isPlaying: Boolean) {
+        playlistDao.savePlaybackState(
+            PlaybackStateEntity(currentTrackRpath = rpath, currentPositionMs = positionMs, isPlaying = isPlaying)
+        )
+    }
 
     private val jsonParser = Json { ignoreUnknownKeys = true }
 
@@ -63,7 +108,7 @@ class MusicRepository(
                 val fileDao = database.fileDao()
                 val cachedFiles = fileDao.getAll()
                 if (clearCache) {
-                    context.cacheDir.resolve("artworks").deleteRecursively()
+                    context.filesDir.resolve("artworks").deleteRecursively()
                 }
 
                 val loadedFiles = if (cachedFiles.isNotEmpty() && !clearCache) {
@@ -105,10 +150,7 @@ class MusicRepository(
         return filesCache.mapNotNull { cached ->
             val data = musicData.find { it.RPath == cached.rpath }
             if (data?.IsLoaded == true) {
-                val artFile = cached.artworkPath?.let { path ->
-                    val file = File(path)
-                    if (file.exists()) file else null
-                }
+                val artFile = cached.artworkPath?.let { File(it) }
                 MusicFile(data, cached.uri.toUri(), artFile)
             } else null
         }
@@ -178,8 +220,6 @@ class MusicRepository(
     }
 
     suspend fun getArtworkFile(musicFile: MusicFile): File? = withContext(Dispatchers.IO) {
-        val fileDao = database.fileDao()
-
         if (musicFile.artworkFile != null) {
             return@withContext musicFile.artworkFile
         }

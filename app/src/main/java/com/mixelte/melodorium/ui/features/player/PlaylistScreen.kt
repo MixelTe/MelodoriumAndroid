@@ -85,7 +85,7 @@ fun PlaylistPreview() {
     PlaylistScreen(
         listOf(
             PlayerUiTrack(
-                id = "1",
+                id = 1,
                 title = "Трава у дома",
                 artist = "Земляне",
                 mood = MusicMood.Energistic,
@@ -94,7 +94,7 @@ fun PlaylistPreview() {
                 isPlaying = true,
             ),
             PlayerUiTrack(
-                id = "2",
+                id = 2,
                 title = "In The Night",
                 artist = "Pet Shop Boys",
                 mood = MusicMood.Energistic,
@@ -102,7 +102,7 @@ fun PlaylistPreview() {
                 lang = MusicLang.En,
             ),
             PlayerUiTrack(
-                id = "3",
+                id = 3,
                 title = "Костёр",
                 artist = "Машина времени",
                 mood = MusicMood.Calm,

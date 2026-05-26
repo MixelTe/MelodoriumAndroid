@@ -19,6 +19,6 @@ class MelodoriumApplication : android.app.Application() {
         settingsRepository = SettingsRepository(this)
         musicRepository = MusicRepository(this, database)
         musicFilterManager = MusicFilterManager(musicRepository)
-        playbackManager = PlaybackManager()
+        playbackManager = PlaybackManager(musicRepository)
     }
 }

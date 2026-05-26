@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val playerViewModel: PlayerViewModel = viewModel {
-                PlayerViewModel(app.playbackManager, app.musicFilterManager, app.musicRepository)
+                PlayerViewModel(app.playbackManager, app.musicFilterManager)
             }
             val playerState by playerViewModel.playerState.collectAsStateWithLifecycle()
 
@@ -174,5 +174,11 @@ class MainActivity : ComponentActivity() {
                 app.playbackManager.setMediaController(controller)
             }, MoreExecutors.directExecutor()
         )
+    }
+
+    override fun onStop() {
+        super.onStop()
+        val app = application as MelodoriumApplication
+        app.playbackManager.release()
     }
 }

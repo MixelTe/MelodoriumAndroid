@@ -2,6 +2,7 @@ package com.mixelte.melodorium.ui.features.player
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +44,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,6 +57,7 @@ import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
 import com.mixelte.melodorium.ui.common.TrackArtwork
+import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,11 +107,50 @@ fun PlayerScreen(
     onNextClick: () -> Unit,
     onSeekTo: (Float) -> Unit,
 ) {
+    val density = LocalDensity.current
+    val swipeThresholdPx = with(density) { 100.dp.toPx() }
+
+    var totalDragX = 0f
+    var totalDragY = 0f
+    var isGestureConsumed = false
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = {
+                        totalDragX = 0f
+                        totalDragY = 0f
+                        isGestureConsumed = false
+                    },
+                    onDrag = { change, dragAmount ->
+                        if (isGestureConsumed) return@detectDragGestures
+
+                        totalDragX += dragAmount.x
+                        totalDragY += dragAmount.y
+
+                        if (abs(totalDragX) > swipeThresholdPx || abs(totalDragY) > swipeThresholdPx) {
+                            isGestureConsumed = true
+
+                            if (abs(totalDragX) > abs(totalDragY)) {
+                                if (totalDragX > 0) {
+                                    onPreviousClick()
+                                } else {
+                                    onNextClick()
+                                }
+                            } else {
+                                if (totalDragY > 0) {
+                                    onBackClick()
+                                }
+                            }
+                            change.consume()
+                        }
+                    }
+                )
+            }
     ) {
         Row(
             modifier = Modifier
@@ -281,7 +324,7 @@ fun PlayerScreenPreview() {
     PlayerScreen(
         PlayerUiState(
             track = PlayerUiTrack(
-                id = "",
+                id = 0,
                 title = "Трава у дома",
                 artist = "Земляне",
                 mood = MusicMood.Energistic,
