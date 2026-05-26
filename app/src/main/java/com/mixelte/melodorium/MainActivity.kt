@@ -26,6 +26,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.mixelte.melodorium.player.PlaybackService
 import com.mixelte.melodorium.ui.common.BottomNavigationBar
@@ -49,6 +50,8 @@ sealed class Screen(val route: String) {
 }
 
 class MainActivity : ComponentActivity() {
+    private var controllerFuture: ListenableFuture<MediaController>? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -166,12 +169,19 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         val sessionToken = SessionToken(this, ComponentName(this, PlaybackService::class.java))
-        val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
-        controllerFuture.addListener(
+        val future = MediaController.Builder(this, sessionToken).buildAsync()
+        controllerFuture = future
+        future.addListener(
             {
-                val app = application as MelodoriumApplication
-                val controller = controllerFuture.get()
-                app.playbackManager.setMediaController(controller)
+                try {
+                    if (future.isCancelled) return@addListener
+
+                    val app = application as MelodoriumApplication
+                    val controller = future.get()
+                    app.playbackManager.setMediaController(controller)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }, MoreExecutors.directExecutor()
         )
     }
@@ -180,5 +190,16 @@ class MainActivity : ComponentActivity() {
         super.onStop()
         val app = application as MelodoriumApplication
         app.playbackManager.release()
+        controllerFuture.also { controllerFuture = null }?.let { future ->
+            if (future.isDone && !future.isCancelled) {
+                try {
+                    future.get().release()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            } else {
+                future.cancel(true)
+            }
+        }
     }
 }
