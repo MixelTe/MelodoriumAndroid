@@ -51,6 +51,8 @@ class PlayerViewModel(
                         it.file.mood,
                         it.file.like,
                         it.file.lang,
+                        it.file.emo,
+                        it.file.publicEnum,
                         it.file.artworkFile ?: trackArtwork,
                         isPlaying
                     )
@@ -70,6 +72,8 @@ class PlayerViewModel(
                 it.file.mood,
                 it.file.like,
                 it.file.lang,
+                it.file.emo,
+                it.file.publicEnum,
                 it.file.artworkFile,
                 currentTrack?.id == it.id,
             )

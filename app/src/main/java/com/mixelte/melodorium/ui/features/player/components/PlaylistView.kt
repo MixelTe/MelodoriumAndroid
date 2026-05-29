@@ -20,9 +20,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.mixelte.melodorium.domain.models.MusicEmo
 import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
+import com.mixelte.melodorium.domain.models.MusicPublic
 import com.mixelte.melodorium.ui.common.TrackListItem
 import com.mixelte.melodorium.ui.common.UiTrack
 
@@ -92,6 +94,8 @@ fun PlaylistPreview() {
                 mood = MusicMood.Energistic,
                 like = MusicLike.Like,
                 lang = MusicLang.Ru,
+                emo = MusicEmo.Neutral,
+                public = MusicPublic.Public,
                 isPlaying = true,
             ),
             UiTrack(
@@ -101,6 +105,8 @@ fun PlaylistPreview() {
                 mood = MusicMood.Energistic,
                 like = MusicLike.Like,
                 lang = MusicLang.En,
+                emo = MusicEmo.Neutral,
+                public = MusicPublic.Public,
             ),
             UiTrack(
                 id = 3,
@@ -109,6 +115,8 @@ fun PlaylistPreview() {
                 mood = MusicMood.Calm,
                 like = MusicLike.Best,
                 lang = MusicLang.Ru,
+                emo = MusicEmo.Neutral,
+                public = MusicPublic.Public,
             ),
         ),
         {},

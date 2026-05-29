@@ -20,9 +20,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mixelte.melodorium.domain.models.MusicEmo
 import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
+import com.mixelte.melodorium.domain.models.MusicPublic
 import com.mixelte.melodorium.ui.common.EmptyState
 import com.mixelte.melodorium.ui.common.TrackList
 import com.mixelte.melodorium.ui.common.UiTrack
@@ -123,6 +125,8 @@ fun LibraryScreenPreview() {
                 mood = MusicMood.Energistic,
                 like = MusicLike.Like,
                 lang = MusicLang.Ru,
+                emo = MusicEmo.Neutral,
+                public = MusicPublic.Public,
             ),
             UiTrack(
                 id = 2,
@@ -131,6 +135,8 @@ fun LibraryScreenPreview() {
                 mood = MusicMood.Energistic,
                 like = MusicLike.Like,
                 lang = MusicLang.En,
+                emo = MusicEmo.Neutral,
+                public = MusicPublic.Public,
             ),
             UiTrack(
                 id = 3,
@@ -139,6 +145,8 @@ fun LibraryScreenPreview() {
                 mood = MusicMood.Calm,
                 like = MusicLike.Best,
                 lang = MusicLang.Ru,
+                emo = MusicEmo.Neutral,
+                public = MusicPublic.Public,
             ),
         ),
     )

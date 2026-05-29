@@ -20,7 +20,7 @@ data class FilterState(
     val selectedMoods: List<MusicMood> = MusicMood.entries,
     val selectedLikes: List<MusicLike> = MusicLike.entries,
     val selectedLangs: List<MusicLang> = MusicLang.entries,
-    val selectedEmos: List<MusicEmo> = MusicEmo.entries,
+    val selectedEmos: List<MusicEmo> = emptyList(),
     val selectedTags: List<String> = emptyList(),
     val selectedFolders: List<String> = emptyList(),
     val selectedPublics: List<MusicPublic> = emptyList()

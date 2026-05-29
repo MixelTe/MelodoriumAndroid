@@ -58,9 +58,9 @@ enum class MusicEmo {
     Sad;
 
     fun toName(): String = when (this) {
-        Happy -> "Веселое"
-        Neutral -> "Нейтральное"
-        Sad -> "Грустное"
+        Happy -> "\uD83E\uDD73"
+        Neutral -> "\uD83D\uDE0C"
+        Sad -> "\uD83D\uDE22"
     }
 }
 
@@ -69,8 +69,8 @@ enum class MusicPublic {
     Public;
 
     fun toName(): String = when (this) {
-        Private -> "Приватный"
-        Public -> "Публичный"
+        Private -> "\uD83D\uDC64"
+        Public -> "\uD83D\uDC65"
     }
 
     companion object {

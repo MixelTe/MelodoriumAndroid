@@ -34,6 +34,8 @@ class LibraryViewModel(
                 mood = it.mood,
                 like = it.like,
                 lang = it.lang,
+                emo = it.emo,
+                public = it.publicEnum,
                 artwork = it.artworkFile,
                 isPlaying = false,
             )

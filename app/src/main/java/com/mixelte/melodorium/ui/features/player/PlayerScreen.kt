@@ -53,9 +53,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mixelte.melodorium.R
+import com.mixelte.melodorium.domain.models.MusicEmo
 import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
+import com.mixelte.melodorium.domain.models.MusicPublic
 import com.mixelte.melodorium.ui.common.TrackArtwork
 import com.mixelte.melodorium.ui.common.UiTrack
 import com.mixelte.melodorium.ui.features.player.components.PlaylistView
@@ -332,6 +334,8 @@ fun PlayerScreenPreview() {
                 mood = MusicMood.Energistic,
                 like = MusicLike.Like,
                 lang = MusicLang.Ru,
+                emo = MusicEmo.Neutral,
+                public = MusicPublic.Public,
             ),
             progress = 0.45f,
             currentTime = "1:24",

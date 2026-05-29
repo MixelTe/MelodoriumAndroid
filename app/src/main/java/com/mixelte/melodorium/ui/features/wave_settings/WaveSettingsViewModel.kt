@@ -5,10 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.mixelte.melodorium.cyrillicToLatin
 import com.mixelte.melodorium.domain.FilterState
 import com.mixelte.melodorium.domain.MusicFilterManager
+import com.mixelte.melodorium.domain.models.MusicEmo
 import com.mixelte.melodorium.domain.models.MusicFile
 import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
+import com.mixelte.melodorium.domain.models.MusicPublic
+import com.mixelte.melodorium.toEnumOrNull
 import com.mixelte.melodorium.toLongHash
 import com.mixelte.melodorium.ui.common.UiTrack
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,8 +36,9 @@ data class WaveSettingsUiState(
     val moods: List<WaveSettingsUiChip> = emptyList(),
     val likes: List<WaveSettingsUiChip> = emptyList(),
     val langs: List<WaveSettingsUiChip> = emptyList(),
-//    val emos: List<WaveSettingsUiChip> = emptyList(),
     val tags: List<WaveSettingsUiChip> = emptyList(),
+    val other: List<WaveSettingsUiChip> = emptyList(),
+//    val emos: List<WaveSettingsUiChip> = emptyList(),
 //    val selectedPublics: List<WaveSettingsUiChip> = emptyList()
     val trackCount: Int = 0,
     val isLoading: Boolean = true,
@@ -53,6 +57,8 @@ class WaveSettingsViewModel(
                 it.mood,
                 it.like,
                 it.lang,
+                it.emo,
+                it.publicEnum,
                 it.artworkFile,
                 false,
             )
@@ -114,6 +120,19 @@ class WaveSettingsViewModel(
                         it in state.selectedTags
                     )
                 },
+                other = MusicEmo.entries.map {
+                    WaveSettingsUiChip(
+                        it.toString(),
+                        it.toName(),
+                        it in state.selectedEmos
+                    )
+                } + MusicPublic.entries.map {
+                    WaveSettingsUiChip(
+                        it.toString(),
+                        it.toName(),
+                        it in state.selectedPublics
+                    )
+                },
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), WaveSettingsUiState())
 
@@ -137,8 +156,16 @@ class WaveSettingsViewModel(
     fun onLangToggled(lang: String, isSelected: Boolean? = null) =
         filterManager.toggleLang(MusicLang.valueOf(lang), isSelected)
 
-    //    fun onEmoToggled(emo: String, isSelected: Boolean? = null) = filterManager.toggleEmo(MusicEmo.valueOf(emo), isSelected)
     fun onTagToggled(tag: String, isSelected: Boolean? = null) = filterManager.toggleTag(tag, isSelected)
+
+    fun onOtherToggled(item: String, isSelected: Boolean? = null) {
+        item.toEnumOrNull<MusicEmo>()?.let {
+            filterManager.toggleEmo(it, isSelected)
+        }
+        item.toEnumOrNull<MusicPublic>()?.let {
+            filterManager.togglePublic(it, isSelected)
+        }
+    }
 
     fun clearFilters() = filterManager.reset()
 

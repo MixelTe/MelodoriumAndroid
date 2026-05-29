@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -75,16 +74,19 @@ fun WaveSettingsRoute(viewModel: WaveSettingsViewModel) {
             toggleLike = viewModel::onLikeToggled,
             toggleLang = viewModel::onLangToggled,
             toggleTag = viewModel::onTagToggled,
+            toggleOther = viewModel::onOtherToggled,
             clearArtist = { toggleSection(false, uiState.artists, viewModel::onArtistToggled) },
             clearMood = { toggleSection(false, uiState.moods, viewModel::onMoodToggled) },
             clearLike = { toggleSection(false, uiState.likes, viewModel::onLikeToggled) },
             clearLang = { toggleSection(false, uiState.langs, viewModel::onLangToggled) },
             clearTag = { toggleSection(false, uiState.tags, viewModel::onTagToggled) },
+            clearOther = { toggleSection(false, uiState.tags, viewModel::onOtherToggled) },
             selectAllArtist = { toggleSection(true, uiState.artists, viewModel::onArtistToggled) },
             selectAllMood = { toggleSection(true, uiState.moods, viewModel::onMoodToggled) },
             selectAllLike = { toggleSection(true, uiState.likes, viewModel::onLikeToggled) },
             selectAllLang = { toggleSection(true, uiState.langs, viewModel::onLangToggled) },
             selectAllTag = { toggleSection(true, uiState.tags, viewModel::onTagToggled) },
+            selectAllOther = { toggleSection(true, uiState.tags, viewModel::onOtherToggled) },
         )
 
         if (showPlaylist) {
@@ -126,16 +128,19 @@ fun WaveSettingsScreen(
     toggleLike: (String) -> Unit,
     toggleLang: (String) -> Unit,
     toggleTag: (String) -> Unit,
+    toggleOther: (String) -> Unit,
     clearArtist: () -> Unit,
     clearMood: () -> Unit,
     clearLike: () -> Unit,
     clearLang: () -> Unit,
     clearTag: () -> Unit,
+    clearOther: () -> Unit,
     selectAllArtist: () -> Unit,
     selectAllMood: () -> Unit,
     selectAllLike: () -> Unit,
     selectAllLang: () -> Unit,
     selectAllTag: () -> Unit,
+    selectAllOther: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -192,11 +197,19 @@ fun WaveSettingsScreen(
                 ChipsRow(items = state.langs, toggle = toggleLang, wrap = true)
             }
 
-            SettingsSection(title = "Категория", onClearClick = clearTag, onSelectAllClick = selectAllTag) {
+            val selectedTags = state.tags.filter { it.isSelected }
+            SettingsSection(
+                title = "Категория" + if (selectedTags.isEmpty()) "" else " (${selectedTags.size}/${state.tags.size})",
+                onClearClick = clearTag, onSelectAllClick = selectAllTag
+            ) {
                 ChipsRow(items = state.tags, toggle = toggleTag)
             }
 
-            SettingsSection(title = "Исполнитель", onClearClick = clearArtist, onSelectAllClick = selectAllArtist) {
+            val selectedArtists = state.artists.filter { it.isSelected }
+            SettingsSection(
+                title = "Исполнитель" + if (selectedArtists.isEmpty()) "" else " (${selectedArtists.size}/${state.artists.size})",
+                onClearClick = clearArtist, onSelectAllClick = selectAllArtist
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -214,7 +227,7 @@ fun WaveSettingsScreen(
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        state.artists.filter { it.isSelected }.forEach { artist ->
+                        selectedArtists.forEach { artist ->
                             InputChip(
                                 selected = true,
                                 onClick = { toggleArtist(artist.text, false) },
@@ -231,6 +244,11 @@ fun WaveSettingsScreen(
                     }
                 }
             }
+
+            SettingsSection(title = "Атмосфера", onClearClick = clearOther, onSelectAllClick = selectAllOther) {
+                ChipsRow(items = state.other, toggle = toggleOther, wrap = true)
+            }
+
             if (state.isLoading) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -245,7 +263,6 @@ fun WaveSettingsScreen(
                     Text("Loading files", style = MaterialTheme.typography.headlineSmall)
                 }
             } else {
-                Spacer(modifier = Modifier.height(16.dp))
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
@@ -276,6 +293,7 @@ fun SettingsScreenPreview() {
     val langs = listOf("🇷🇺 Ру", "🇬🇧 En", "🇫🇷 Fr", "🇩🇪 De", "🇮🇹 It")
     val artists = listOf("Машина времени", "Король и Шут", "Pet Shop Boys")
     val tags = listOf("Джаз", "Новогоднее", "Забавное", "Электроника", "Необычное")
+    val other = listOf("\uD83E\uDD73", "\uD83D\uDE0C", "\uD83D\uDE22", "\uD83D\uDC64", "\uD83D\uDC65")
     val selectedMoods = listOf("Спокойное", "Бодрое")
     val selectedLikes = listOf("Избранное")
     val selectedLangs = listOf("🇷🇺 Ру", "🇬🇧 En", "🇫🇷 Fr")
@@ -289,9 +307,10 @@ fun SettingsScreenPreview() {
             langs = langs.map { WaveSettingsUiChip(it, it, it in selectedLangs) },
             artists = artists.map { WaveSettingsUiChip(it, it, it in selectedArtists) },
             tags = tags.map { WaveSettingsUiChip(it, it, it in selectedTags) },
+            other = other.map { WaveSettingsUiChip(it, it, false) },
             trackCount = 435,
             isLoading = false,
 //            error = "123",
-        ), {}, {}, {}, {}, { _, _ -> }, { }, { }, { }, { }, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
+        ), {}, {}, {}, {}, { _, _ -> }, { }, { }, { }, { }, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
     )
 }

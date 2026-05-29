@@ -5,6 +5,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.layout
 import java.util.Locale
 import java.util.UUID
+import kotlin.enums.enumEntries
 import kotlin.math.roundToInt
 
 data class Quadruple<out A, out B, out C, out D>(
@@ -83,3 +84,7 @@ fun String.cyrillicToLatin(): String {
         }
     }
 }
+
+
+inline fun <reified T : Enum<T>> String.toEnumOrNull(): T? =
+    enumEntries<T>().firstOrNull { it.name.equals(this, ignoreCase = true) }

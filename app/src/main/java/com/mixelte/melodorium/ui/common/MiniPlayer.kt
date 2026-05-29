@@ -38,9 +38,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.mixelte.melodorium.domain.models.MusicEmo
 import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
+import com.mixelte.melodorium.domain.models.MusicPublic
 import com.mixelte.melodorium.ui.features.player.PlayerUiState
 
 @Composable
@@ -88,7 +90,7 @@ fun MiniPlayer(
                                 .align(Alignment.BottomStart)
                                 .offset(x = (-2).dp, y = 2.dp)
                         ) {
-                            MusicMoodBadge(track.mood, track.like, track.lang)
+                            MusicMoodBadge(track.mood, track.like, track.lang, track.emo, track.public)
                         }
                     }
                 }
@@ -161,6 +163,8 @@ fun MiniPlayerPreview() {
                 mood = MusicMood.Energistic,
                 like = MusicLike.Like,
                 lang = MusicLang.Ru,
+                emo = MusicEmo.Neutral,
+                public = MusicPublic.Public,
             ),
             progress = 0.45f,
             currentTime = "1:24",

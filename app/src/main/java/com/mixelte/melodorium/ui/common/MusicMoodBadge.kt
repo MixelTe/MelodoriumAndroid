@@ -12,6 +12,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowLeft
+import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -19,12 +21,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mixelte.melodorium.domain.models.MusicEmo
 import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
+import com.mixelte.melodorium.domain.models.MusicPublic
 import com.mixelte.melodorium.ui.theme.getBackgroundColor
 import com.mixelte.melodorium.ui.theme.getStarColor
 
@@ -33,6 +38,8 @@ fun MusicMoodBadge(
     mood: MusicMood,
     like: MusicLike,
     lang: MusicLang,
+    emo: MusicEmo,
+    public: MusicPublic,
     modifier: Modifier = Modifier
 ) {
     val starCount = when (like) {
@@ -41,6 +48,7 @@ fun MusicMoodBadge(
         MusicLike.Like -> 2
         MusicLike.Best -> 3
     }
+    val starColor = mood.getStarColor()
 
     Box(
         modifier = modifier
@@ -60,7 +68,7 @@ fun MusicMoodBadge(
             Icon(
                 imageVector = Icons.Filled.Star,
                 contentDescription = null,
-                tint = mood.getStarColor(),
+                tint = starColor,
                 modifier = Modifier
                     .size(13.dp)
                     .align(Alignment.BottomCenter)
@@ -71,7 +79,7 @@ fun MusicMoodBadge(
             Icon(
                 imageVector = Icons.Filled.Star,
                 contentDescription = null,
-                tint = mood.getStarColor(),
+                tint = starColor,
                 modifier = Modifier
                     .size(13.dp)
                     .align(Alignment.BottomCenter)
@@ -80,37 +88,46 @@ fun MusicMoodBadge(
             Icon(
                 imageVector = Icons.Filled.Star,
                 contentDescription = null,
-                tint = mood.getStarColor(),
+                tint = starColor,
                 modifier = Modifier
                     .size(13.dp)
                     .align(Alignment.BottomCenter)
                     .offset(x = (if (starCount == 2) 5 else 8).dp, y = (-1).dp)
             )
         }
-
-//
-//        if (starCount > 0) {
-//            Row(
-//                modifier = Modifier
-//                    .align(Alignment.BottomCenter)
-//                    .padding(bottom = 2.dp),
-//                horizontalArrangement = Arrangement.Center,
-//                verticalAlignment = Alignment.CenterVertically
-//            ) {
-//                for (i in 0 until starCount) {
-//                    val yOffset = if (starCount == 3 && (i == 0 || i == 2)) (-2).dp else 0.dp
-//
-//                    Icon(
-//                        imageVector = Icons.Filled.Star,
-//                        contentDescription = null,
-//                        tint = mood.getStarColor(),
-//                        modifier = Modifier
-//                            .size(14.dp)
-//                            .offset(y = yOffset)
-//                    )
-//                }
-//            }
-//        }
+        if (emo != MusicEmo.Neutral) {
+            val degrees = if (emo == MusicEmo.Happy) 90F else -90F
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowLeft,
+                contentDescription = null,
+                tint = starColor,
+                modifier = Modifier
+                    .size(16.dp)
+                    .align(Alignment.CenterStart)
+                    .offset(x = (-4).dp)
+                    .rotate(degrees)
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowLeft,
+                contentDescription = null,
+                tint = starColor,
+                modifier = Modifier
+                    .size(16.dp)
+                    .align(Alignment.CenterEnd)
+                    .offset(x = (4).dp)
+                    .rotate(degrees)
+            )
+        }
+        if (public == MusicPublic.Private) {
+            Icon(
+                imageVector = Icons.Default.AcUnit,
+                contentDescription = null,
+                tint = starColor,
+                modifier = Modifier
+                    .size(14.dp)
+                    .align(Alignment.TopCenter)
+            )
+        }
     }
 }
 
@@ -140,7 +157,9 @@ fun MusicMoodGridPreview() {
                         MusicMoodBadge(
                             mood = mood,
                             like = like,
-                            lang = MusicLang.entries[i]
+                            lang = MusicLang.entries[i],
+                            emo = MusicEmo.entries[i % 3],
+                            public = MusicPublic.entries[i % 2],
                         )
                     }
                 }

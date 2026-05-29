@@ -26,6 +26,6 @@ fun MusicMood.getStarColor(): Color = when (this) {
     MusicMood.Rock -> Color(0xFF2DE392)
     MusicMood.Energistic -> Color(0xFF1B3DDE)
     MusicMood.Cheerful -> Color(0xFFE02B33)
-    MusicMood.Calm -> Color(0xFFE4F046)
-    MusicMood.Sleep -> Color(0xFFE6812B)
+    MusicMood.Calm -> Color(0xFFEBFF00)
+    MusicMood.Sleep -> Color(0xFFEE750F)
 }

@@ -22,9 +22,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.mixelte.melodorium.domain.models.MusicEmo
 import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
+import com.mixelte.melodorium.domain.models.MusicPublic
 import java.io.File
 
 data class UiTrack(
@@ -34,6 +36,8 @@ data class UiTrack(
     val mood: MusicMood,
     val like: MusicLike,
     val lang: MusicLang,
+    val emo: MusicEmo,
+    val public: MusicPublic,
     val artwork: File? = null,
     val isPlaying: Boolean = false,
     val rpath: String? = null,
@@ -88,7 +92,7 @@ fun TrackListItem(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                MusicMoodBadge(track.mood, track.like, track.lang)
+                MusicMoodBadge(track.mood, track.like, track.lang, track.emo, track.public)
 
                 IconButton(onClick = { /* Действие */ }) {
                     Icon(
@@ -112,6 +116,8 @@ fun TrackListItemPreview() {
             mood = MusicMood.Energistic,
             like = MusicLike.Like,
             lang = MusicLang.Ru,
+            emo = MusicEmo.Neutral,
+            public = MusicPublic.Public,
         ),
         {},
     )
