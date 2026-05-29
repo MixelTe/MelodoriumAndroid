@@ -1,5 +1,6 @@
 package com.mixelte.melodorium.ui.features.library
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,8 +16,10 @@ import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -35,12 +38,20 @@ fun LibraryRoute(viewModel: LibraryViewModel) {
     val query by viewModel.query.collectAsStateWithLifecycle()
     val tracks by viewModel.tracks.collectAsStateWithLifecycle()
 
+    val context = LocalContext.current
+    LaunchedEffect(viewModel.events) {
+        viewModel.events.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     LibraryScreen(
         isSearching,
         query,
+        tracks,
         { viewModel.setQuery(it) },
         { viewModel.cancelSearching() },
-        tracks
+        onTrackClick = { viewModel.addTrackToQueue(it) },
     )
 }
 
@@ -49,9 +60,10 @@ fun LibraryRoute(viewModel: LibraryViewModel) {
 fun LibraryScreen(
     isSearching: Boolean,
     query: String,
+    tracks: List<UiTrack>,
     onQueryChange: (query: String) -> Unit,
     onCancelSearching: () -> Unit,
-    tracks: List<UiTrack>
+    onTrackClick: ((UiTrack) -> Unit)?,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         SearchBar(
@@ -103,7 +115,7 @@ fun LibraryScreen(
                 )
             }
         } else {
-            TrackList(tracks)
+            TrackList(tracks, onTrackClick = onTrackClick)
         }
     }
 }
@@ -115,8 +127,6 @@ fun LibraryScreenPreview() {
     LibraryScreen(
         false,
         "",
-        {},
-        {},
         listOf(
             UiTrack(
                 id = 1,
@@ -149,5 +159,8 @@ fun LibraryScreenPreview() {
                 public = MusicPublic.Public,
             ),
         ),
+        {},
+        {},
+        {},
     )
 }

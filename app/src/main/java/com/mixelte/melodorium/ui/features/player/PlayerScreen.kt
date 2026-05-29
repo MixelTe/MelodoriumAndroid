@@ -95,6 +95,7 @@ fun PlayerRoute(viewModel: PlayerViewModel, onBackClick: () -> Unit) {
                     onBackClick = { showPlaylist = false },
                     onClearQueueClick = { viewModel.clearPlaylist() },
                     onTrackClick = { viewModel.playTrack(it) },
+                    onTrackRemove = { viewModel.removeTrack(it) },
                 )
             }
         }

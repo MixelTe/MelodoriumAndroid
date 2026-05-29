@@ -85,11 +85,11 @@ class MainActivity : ComponentActivity() {
             }
 
             val waveSettingsViewModel: WaveSettingsViewModel = viewModel {
-                WaveSettingsViewModel(app.musicFilterManager)
+                WaveSettingsViewModel(app.musicFilterManager, app.playbackManager)
             }
 
             val libraryViewModel: LibraryViewModel = viewModel {
-                LibraryViewModel(app.musicRepository)
+                LibraryViewModel(app.musicRepository, app.playbackManager)
             }
 
             val startDestination = intent.getStringExtra("navigate_to") ?: Screen.WaveSettings.route

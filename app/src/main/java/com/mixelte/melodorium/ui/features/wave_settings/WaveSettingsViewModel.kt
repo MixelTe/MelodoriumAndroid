@@ -11,14 +11,19 @@ import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
 import com.mixelte.melodorium.domain.models.MusicPublic
+import com.mixelte.melodorium.player.PlaybackManager
 import com.mixelte.melodorium.toEnumOrNull
 import com.mixelte.melodorium.toLongHash
 import com.mixelte.melodorium.ui.common.UiTrack
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 data class WaveSettingsUiChip(
     val id: String,
@@ -38,8 +43,6 @@ data class WaveSettingsUiState(
     val langs: List<WaveSettingsUiChip> = emptyList(),
     val tags: List<WaveSettingsUiChip> = emptyList(),
     val other: List<WaveSettingsUiChip> = emptyList(),
-//    val emos: List<WaveSettingsUiChip> = emptyList(),
-//    val selectedPublics: List<WaveSettingsUiChip> = emptyList()
     val trackCount: Int = 0,
     val isLoading: Boolean = true,
     val error: String? = null,
@@ -47,7 +50,11 @@ data class WaveSettingsUiState(
 
 class WaveSettingsViewModel(
     private val filterManager: MusicFilterManager,
+    private val playbackManager: PlaybackManager,
 ) : ViewModel() {
+    private val _eventChannel = Channel<String>(Channel.BUFFERED)
+    val events = _eventChannel.receiveAsFlow()
+
     val filteredTracks = filterManager.filteredFiles.map { files ->
         files.map {
             UiTrack(
@@ -171,5 +178,20 @@ class WaveSettingsViewModel(
 
     fun onArtistSearchQueryChanged(newQuery: String) {
         _artistSearchQuery.value = newQuery
+    }
+
+    fun addTrackToQueue(track: UiTrack) {
+        viewModelScope.launch {
+            val musicFile = filterManager.filteredFiles.first().find {
+                it.rpath.toLongHash() == track.id
+            }
+
+            if (musicFile != null) {
+                playbackManager.addTrack(musicFile)
+                _eventChannel.send("Трек добавлен в очередь: ${track.title}")
+            } else {
+                _eventChannel.send("Не удалось добавить трек: возможно, он был отфильтрован")
+            }
+        }
     }
 }

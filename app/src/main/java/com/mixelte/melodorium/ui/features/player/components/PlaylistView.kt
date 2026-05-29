@@ -5,10 +5,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,7 +24,8 @@ import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
 import com.mixelte.melodorium.domain.models.MusicPublic
-import com.mixelte.melodorium.ui.common.TrackListItem
+import com.mixelte.melodorium.ui.common.TrackList
+import com.mixelte.melodorium.ui.common.TrackMenuAction
 import com.mixelte.melodorium.ui.common.UiTrack
 
 @Composable
@@ -33,7 +33,8 @@ fun PlaylistView(
     tracks: List<UiTrack>,
     onBackClick: () -> Unit,
     onClearQueueClick: () -> Unit,
-    onTrackClick: (UiTrack) -> Unit
+    onTrackClick: (UiTrack) -> Unit,
+    onTrackRemove: (UiTrack) -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxSize()
@@ -67,18 +68,20 @@ fun PlaylistView(
             }
         }
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-        ) {
-            items(tracks, key = { it.id }) { track ->
-                TrackListItem(
-                    track = track,
-                    onClick = { onTrackClick(track) }
+        TrackList(
+            tracks,
+            modifier = Modifier.weight(1f),
+            onTrackClick = { onTrackClick(it) },
+            getMenuActions = { track ->
+                listOf(
+                    TrackMenuAction(
+                        text = "Удалить из очереди",
+                        icon = Icons.Default.Delete,
+                        onClick = { onTrackRemove(track) }
+                    )
                 )
-            }
-        }
+            },
+        )
     }
 }
 
@@ -119,6 +122,7 @@ fun PlaylistPreview() {
                 public = MusicPublic.Public,
             ),
         ),
+        {},
         {},
         {},
         {},

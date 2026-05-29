@@ -1,6 +1,6 @@
 package com.mixelte.melodorium.ui.common
 
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
@@ -16,12 +16,17 @@ import com.mixelte.melodorium.domain.models.MusicPublic
 @Composable
 fun TrackList(
     tracks: List<UiTrack>,
+    modifier: Modifier = Modifier,
+    onTrackClick: ((UiTrack) -> Unit)? = null,
+    getMenuActions: (UiTrack) -> List<TrackMenuAction> = { emptyList() },
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    LazyColumn(modifier = modifier.fillMaxWidth()) {
         items(tracks, key = { it.id }) { track ->
-            TrackListItem(track)
+            TrackListItem(
+                track = track,
+                onClick = onTrackClick?.let { { it(track) } },
+                menuActions = getMenuActions(track),
+            )
         }
     }
 }
