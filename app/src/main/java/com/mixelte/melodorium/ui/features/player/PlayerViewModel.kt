@@ -3,32 +3,18 @@ package com.mixelte.melodorium.ui.features.player
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mixelte.melodorium.domain.MusicFilterManager
-import com.mixelte.melodorium.domain.models.MusicLang
-import com.mixelte.melodorium.domain.models.MusicLike
-import com.mixelte.melodorium.domain.models.MusicMood
 import com.mixelte.melodorium.player.PlaybackManager
 import com.mixelte.melodorium.toTimeString
+import com.mixelte.melodorium.ui.common.UiTrack
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.io.File
-
-data class PlayerUiTrack(
-    val id: Long,
-    val title: String,
-    val artist: String,
-    val mood: MusicMood,
-    val like: MusicLike,
-    val lang: MusicLang,
-    val artwork: File? = null,
-    val isPlaying: Boolean = false,
-)
 
 data class PlayerUiState(
-    val track: PlayerUiTrack? = null,
+    val track: UiTrack? = null,
     val progress: Float = 0f,
     val currentTime: String? = null,
     val fullTime: String? = null,
@@ -58,7 +44,7 @@ class PlayerViewModel(
             val progress = if (duration > 0) currentPosition.toFloat() / duration else 0F
             PlayerUiState(
                 track = track?.let {
-                    PlayerUiTrack(
+                    UiTrack(
                         it.id,
                         it.file.name,
                         it.file.author,
@@ -77,7 +63,7 @@ class PlayerViewModel(
 
     val tracks = combine(playlist, currentTrack, currentArtwork) { items, currentTrack, _ ->
         items?.map {
-            PlayerUiTrack(
+            UiTrack(
                 it.id,
                 it.file.name,
                 it.file.author,
@@ -135,29 +121,29 @@ class PlayerViewModel(
         }
     }
 
-    fun removeTrack(item: PlayerUiTrack) = playbackManager.removeTrack(item.id)
-    fun removeTracks(items: List<PlayerUiTrack>) = playbackManager.removeTracks(items.map { it.id })
+    fun removeTrack(item: UiTrack) = playbackManager.removeTrack(item.id)
+    fun removeTracks(items: List<UiTrack>) = playbackManager.removeTracks(items.map { it.id })
 
-    fun shufflePlaylist(selectedItems: List<PlayerUiTrack>? = null) {
+    fun shufflePlaylist(selectedItems: List<UiTrack>? = null) {
         playbackManager.shuffle(selectedItems?.let { items -> items.map { it.id } })
     }
 
-    fun moveTrackUp(item: PlayerUiTrack) {
+    fun moveTrackUp(item: UiTrack) {
         val i = playbackManager.indexOfEntry(item.id)
         playbackManager.moveTrack(i, i - 1)
     }
 
-    fun moveTrackDown(item: PlayerUiTrack) {
+    fun moveTrackDown(item: UiTrack) {
         val i = playbackManager.indexOfEntry(item.id)
         playbackManager.moveTrack(i, i + 1)
     }
 
-    fun moveTrackToEnd(item: PlayerUiTrack) {
+    fun moveTrackToEnd(item: UiTrack) {
         val i = playbackManager.indexOfEntry(item.id)
         playlist.value?.let { playbackManager.moveTrack(i, it.size - 1) }
     }
 
-    fun playTrack(item: PlayerUiTrack) {
+    fun playTrack(item: UiTrack) {
         val i = playbackManager.indexOfEntry(item.id)
         if (i >= 0) playbackManager.seekTo(i)
     }

@@ -24,13 +24,14 @@ import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
 import com.mixelte.melodorium.ui.common.TrackListItem
+import com.mixelte.melodorium.ui.common.UiTrack
 
 @Composable
 fun PlaylistScreen(
-    tracks: List<PlayerUiTrack>,
+    tracks: List<UiTrack>,
     onBackClick: () -> Unit,
     onClearQueueClick: () -> Unit,
-    onTrackClick: (PlayerUiTrack) -> Unit
+    onTrackClick: (UiTrack) -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxSize()
@@ -84,7 +85,7 @@ fun PlaylistScreen(
 fun PlaylistPreview() {
     PlaylistScreen(
         listOf(
-            PlayerUiTrack(
+            UiTrack(
                 id = 1,
                 title = "Трава у дома",
                 artist = "Земляне",
@@ -93,7 +94,7 @@ fun PlaylistPreview() {
                 lang = MusicLang.Ru,
                 isPlaying = true,
             ),
-            PlayerUiTrack(
+            UiTrack(
                 id = 2,
                 title = "In The Night",
                 artist = "Pet Shop Boys",
@@ -101,7 +102,7 @@ fun PlaylistPreview() {
                 like = MusicLike.Like,
                 lang = MusicLang.En,
             ),
-            PlayerUiTrack(
+            UiTrack(
                 id = 3,
                 title = "Костёр",
                 artist = "Машина времени",

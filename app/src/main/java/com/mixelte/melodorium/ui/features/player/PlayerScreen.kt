@@ -56,6 +56,7 @@ import com.mixelte.melodorium.R
 import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
+import com.mixelte.melodorium.ui.common.UiTrack
 import com.mixelte.melodorium.ui.common.TrackArtwork
 import kotlin.math.abs
 
@@ -323,7 +324,7 @@ fun PlayerScreen(
 fun PlayerScreenPreview() {
     PlayerScreen(
         PlayerUiState(
-            track = PlayerUiTrack(
+            track = UiTrack(
                 id = 0,
                 title = "Трава у дома",
                 artist = "Земляне",

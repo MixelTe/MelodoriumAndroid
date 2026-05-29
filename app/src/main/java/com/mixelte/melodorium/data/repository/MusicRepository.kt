@@ -117,7 +117,7 @@ class MusicRepository(
                     loadFromSystemAndCache(fileDao, rootFolderUri, obj.Files)
                 }
 
-                _files.value = loadedFiles
+                _files.value = loadedFiles.sortedBy { it.rpath }
 
                 _tags.value = loadedFiles
                     .flatMap { it.tags }

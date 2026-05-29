@@ -31,6 +31,8 @@ import com.google.common.util.concurrent.MoreExecutors
 import com.mixelte.melodorium.player.PlaybackService
 import com.mixelte.melodorium.ui.common.BottomNavigationBar
 import com.mixelte.melodorium.ui.common.MiniPlayer
+import com.mixelte.melodorium.ui.features.library.LibraryRoute
+import com.mixelte.melodorium.ui.features.library.LibraryViewModel
 import com.mixelte.melodorium.ui.features.player.PlayerRoute
 import com.mixelte.melodorium.ui.features.player.PlayerViewModel
 import com.mixelte.melodorium.ui.features.settings.SettingsRoute
@@ -86,6 +88,10 @@ class MainActivity : ComponentActivity() {
                 WaveSettingsViewModel(app.musicFilterManager)
             }
 
+            val libraryViewModel: LibraryViewModel = viewModel {
+                LibraryViewModel(app.musicRepository)
+            }
+
             val startDestination = intent.getStringExtra("navigate_to") ?: Screen.WaveSettings.route
             val navController = rememberNavController()
             val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -122,8 +128,8 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         composable(Screen.Library.route) {
-                            Box(modifier = Modifier.padding(innerPadding)) {
-//                            LibraryScreen()
+                            Box(modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())) {
+                                LibraryRoute(libraryViewModel)
                             }
                         }
                         composable(Screen.Settings.route) {

@@ -28,9 +28,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,33 +44,55 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mixelte.melodorium.R
+import com.mixelte.melodorium.ui.common.TrackList
 import com.mixelte.melodorium.ui.features.wave_settings.components.ChipsRow
 import com.mixelte.melodorium.ui.features.wave_settings.components.SettingsSection
 import com.mixelte.melodorium.ui.theme.Tomato
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WaveSettingsRoute(viewModel: WaveSettingsViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val filteredTracks by viewModel.filteredTracks.collectAsStateWithLifecycle()
+    var showPlaylist by rememberSaveable { mutableStateOf(false) }
 
-    fun clearSection(items: List<WaveSettingsUiChip>, toggle: (String, Boolean?) -> Unit) {
-        items.forEach { toggle(it.id, false) }
+    fun toggleSection(value: Boolean, items: List<WaveSettingsUiChip>, toggle: (String, Boolean?) -> Unit) {
+        items.forEach { toggle(it.id, value) }
     }
-    WaveSettingsScreen(
-        state = uiState,
-        openMenu = {},
-        clearFilters = { viewModel.clearFilters() },
-        openList = {},
-        toggleAuthor = viewModel::onAuthorToggled,
-        toggleMood = viewModel::onMoodToggled,
-        toggleLike = viewModel::onLikeToggled,
-        toggleLang = viewModel::onLangToggled,
-        toggleTag = viewModel::onTagToggled,
-        clearAuthor = { clearSection(uiState.authors, viewModel::onAuthorToggled) },
-        clearMood = { clearSection(uiState.moods, viewModel::onMoodToggled) },
-        clearLike = { clearSection(uiState.likes, viewModel::onLikeToggled) },
-        clearLang = { clearSection(uiState.langs, viewModel::onLangToggled) },
-        clearTag = { clearSection(uiState.tags, viewModel::onTagToggled) },
-    )
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        WaveSettingsScreen(
+            state = uiState,
+            openMenu = {},
+            clearFilters = { viewModel.clearFilters() },
+            openList = { showPlaylist = true },
+            toggleAuthor = viewModel::onAuthorToggled,
+            toggleMood = viewModel::onMoodToggled,
+            toggleLike = viewModel::onLikeToggled,
+            toggleLang = viewModel::onLangToggled,
+            toggleTag = viewModel::onTagToggled,
+            clearAuthor = { toggleSection(false, uiState.authors, viewModel::onAuthorToggled) },
+            clearMood = { toggleSection(false, uiState.moods, viewModel::onMoodToggled) },
+            clearLike = { toggleSection(false, uiState.likes, viewModel::onLikeToggled) },
+            clearLang = { toggleSection(false, uiState.langs, viewModel::onLangToggled) },
+            clearTag = { toggleSection(false, uiState.tags, viewModel::onTagToggled) },
+            selectAllAuthor = { toggleSection(true,uiState.authors, viewModel::onAuthorToggled) },
+            selectAllMood = { toggleSection(true,uiState.moods, viewModel::onMoodToggled) },
+            selectAllLike = { toggleSection(true,uiState.likes, viewModel::onLikeToggled) },
+            selectAllLang = { toggleSection(true,uiState.langs, viewModel::onLangToggled) },
+            selectAllTag = { toggleSection(true,uiState.tags, viewModel::onTagToggled) },
+        )
+
+
+        if (showPlaylist) {
+            ModalBottomSheet(
+                onDismissRequest = { showPlaylist = false },
+                sheetState = rememberModalBottomSheetState()
+            ) {
+                TrackList(filteredTracks)
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -85,6 +112,11 @@ fun WaveSettingsScreen(
     clearLike: () -> Unit,
     clearLang: () -> Unit,
     clearTag: () -> Unit,
+    selectAllAuthor: () -> Unit,
+    selectAllMood: () -> Unit,
+    selectAllLike: () -> Unit,
+    selectAllLang: () -> Unit,
+    selectAllTag: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -129,23 +161,23 @@ fun WaveSettingsScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            SettingsSection(title = "Темп", onClearClick = clearMood) {
+            SettingsSection(title = "Темп", onClearClick = clearMood, onSelectAllClick = selectAllMood) {
                 ChipsRow(items = state.moods, toggle = toggleMood)
             }
 
-            SettingsSection(title = "Степень любви", onClearClick = clearLike) {
+            SettingsSection(title = "Степень любви", onClearClick = clearLike, onSelectAllClick = selectAllLike) {
                 ChipsRow(items = state.likes, toggle = toggleLike)
             }
 
-            SettingsSection(title = "Язык", onClearClick = clearLang) {
+            SettingsSection(title = "Язык", onClearClick = clearLang, onSelectAllClick = selectAllLang) {
                 ChipsRow(items = state.langs, toggle = toggleLang, wrap = true)
             }
 
-            SettingsSection(title = "Категория", onClearClick = clearTag) {
+            SettingsSection(title = "Категория", onClearClick = clearTag, onSelectAllClick = selectAllTag) {
                 ChipsRow(items = state.tags, toggle = toggleTag)
             }
 
-            SettingsSection(title = "Исполнитель", onClearClick = clearAuthor) {
+            SettingsSection(title = "Исполнитель", onClearClick = clearAuthor, onSelectAllClick = selectAllAuthor) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -223,12 +255,12 @@ fun SettingsScreenPreview() {
     val moods = listOf("Сон", "Спокойное", "Бодрое", "Энергичное")
     val likes = listOf("Избранное", "Любимое", "Приятное")
     val langs = listOf("🇷🇺 Ру", "🇬🇧 En", "🇫🇷 Fr", "🇩🇪 De", "🇮🇹 It")
-    val artists = listOf("Земфира", "Машина времени", "Король и Шут")
+    val artists = listOf("Машина времени", "Король и Шут", "Pet Shop Boys")
     val tags = listOf("Джаз", "Новогоднее", "Забавное", "Электроника", "Необычное")
     val selectedMoods = listOf("Спокойное", "Бодрое")
     val selectedLikes = listOf("Избранное")
     val selectedLangs = listOf("🇷🇺 Ру", "🇬🇧 En", "🇫🇷 Fr")
-    val selectedArtists = listOf("Земфира", "Машина времени", "Король и Шут")
+    val selectedArtists = listOf("Машина времени", "Король и Шут", "Pet Shop Boys")
     val selectedTags = listOf("Джаз", "Новогоднее", "Забавное")
 
     WaveSettingsScreen(
@@ -241,6 +273,6 @@ fun SettingsScreenPreview() {
             trackCount = 435,
             isLoading = false,
 //            error = "123",
-        ), {}, {}, {}, { _, _ -> }, { }, { }, { }, { }, {}, {}, {}, {}, {}
+        ), {}, {}, {}, { _, _ -> }, { }, { }, { }, { }, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
     )
 }

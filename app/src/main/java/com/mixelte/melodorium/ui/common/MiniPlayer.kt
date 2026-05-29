@@ -42,7 +42,6 @@ import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
 import com.mixelte.melodorium.ui.features.player.PlayerUiState
-import com.mixelte.melodorium.ui.features.player.PlayerUiTrack
 
 @Composable
 fun MiniPlayer(
@@ -155,7 +154,7 @@ fun MiniPlayerPreview() {
     var isPlaying by remember { mutableStateOf(false) }
     MiniPlayer(
         state = PlayerUiState(
-            track = PlayerUiTrack(
+            track = UiTrack(
                 id = 0,
                 title = "Трава у дома",
                 artist = "Земляне",

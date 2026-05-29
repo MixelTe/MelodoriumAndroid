@@ -119,7 +119,7 @@ fun MusicMoodBadge(
 fun MusicMoodGridPreview() {
     val moods = MusicMood.entries.toTypedArray()
     val likes = arrayOf(MusicLike.Normal, MusicLike.Good, MusicLike.Like, MusicLike.Best)
-    val currentLang = MusicLang.Ru
+    var currentLang = 0
 
     LazyVerticalGrid(
         modifier = Modifier.width(250.dp),
@@ -135,10 +135,12 @@ fun MusicMoodGridPreview() {
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.TopStart
                     ) {
+                        var i = currentLang++ % (MusicLang.entries.size - 1) + 1
+                        if (i == 2) i = 1
                         MusicMoodBadge(
                             mood = mood,
                             like = like,
-                            lang = currentLang
+                            lang = MusicLang.entries[i]
                         )
                     }
                 }

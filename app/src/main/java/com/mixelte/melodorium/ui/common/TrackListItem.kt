@@ -25,12 +25,24 @@ import androidx.compose.ui.unit.dp
 import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
-import com.mixelte.melodorium.ui.features.player.PlayerUiTrack
+import java.io.File
+
+data class UiTrack(
+    val id: Long,
+    val title: String,
+    val artist: String,
+    val mood: MusicMood,
+    val like: MusicLike,
+    val lang: MusicLang,
+    val artwork: File? = null,
+    val isPlaying: Boolean = false,
+    val rpath: String? = null,
+)
 
 @Composable
 fun TrackListItem(
-    track: PlayerUiTrack,
-    onClick: () -> Unit
+    track: UiTrack,
+    onClick: (() -> Unit)? = null
 ) {
     val backgroundColor = if (track.isPlaying) {
         MaterialTheme.colorScheme.primaryContainer
@@ -39,9 +51,9 @@ fun TrackListItem(
     }
 
     ListItem(
-        modifier = Modifier.background(backgroundColor).clickable {
-            onClick()
-        },
+        modifier = Modifier
+            .background(backgroundColor)
+            .then(onClick?.let { Modifier.clickable(onClick = it) } ?: Modifier),
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
 
         leadingContent = {
@@ -93,7 +105,7 @@ fun TrackListItem(
 @Composable
 fun TrackListItemPreview() {
     TrackListItem(
-        PlayerUiTrack(
+        UiTrack(
             id = 1,
             title = "Трава у дома",
             artist = "Земляне",

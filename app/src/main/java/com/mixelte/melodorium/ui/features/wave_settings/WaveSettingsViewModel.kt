@@ -8,8 +8,11 @@ import com.mixelte.melodorium.domain.models.MusicFile
 import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
+import com.mixelte.melodorium.toLongHash
+import com.mixelte.melodorium.ui.common.UiTrack
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 data class WaveSettingsUiChip(
@@ -34,6 +37,21 @@ data class WaveSettingsUiState(
 class WaveSettingsViewModel(
     private val filterManager: MusicFilterManager,
 ) : ViewModel() {
+
+    val filteredTracks = filterManager.filteredFiles.map { files ->
+        files.map {
+            UiTrack(
+                it.rpath.toLongHash(),
+                it.name,
+                it.author,
+                it.mood,
+                it.like,
+                it.lang,
+                it.artworkFile,
+                false,
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val uiState =
         combine(

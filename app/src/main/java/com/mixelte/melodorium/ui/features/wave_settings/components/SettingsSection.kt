@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -20,6 +22,7 @@ import com.mixelte.melodorium.R
 fun SettingsSection(
     title: String,
     onClearClick: () -> Unit,
+    onSelectAllClick: () -> Unit,
     content: @Composable () -> Unit
 ) {
     Column {
@@ -33,15 +36,30 @@ fun SettingsSection(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            IconButton(
-                onClick = onClearClick,
-                modifier = Modifier.size(24.dp)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_remove),
-                    contentDescription = "Очистить секцию",
-                    tint = MaterialTheme.colorScheme.outline
-                )
+                IconButton(
+                    onClick = onSelectAllClick,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+//                    painter = painterResource(id = R.drawable.ic_remove),
+                        imageVector = Icons.Default.SelectAll,
+                        contentDescription = "Выбрать всё",
+                        tint = MaterialTheme.colorScheme.outline
+                    )
+                }
+                IconButton(
+                    onClick = onClearClick,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_remove),
+                        contentDescription = "Очистить секцию",
+                        tint = MaterialTheme.colorScheme.outline
+                    )
+                }
             }
         }
         content()
