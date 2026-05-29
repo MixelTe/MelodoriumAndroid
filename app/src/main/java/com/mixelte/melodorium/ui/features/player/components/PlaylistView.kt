@@ -1,4 +1,4 @@
-package com.mixelte.melodorium.ui.features.player
+package com.mixelte.melodorium.ui.features.player.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,7 +27,7 @@ import com.mixelte.melodorium.ui.common.TrackListItem
 import com.mixelte.melodorium.ui.common.UiTrack
 
 @Composable
-fun PlaylistScreen(
+fun PlaylistView(
     tracks: List<UiTrack>,
     onBackClick: () -> Unit,
     onClearQueueClick: () -> Unit,
@@ -83,7 +83,7 @@ fun PlaylistScreen(
 @Preview(showBackground = true)
 @Composable
 fun PlaylistPreview() {
-    PlaylistScreen(
+    PlaylistView(
         listOf(
             UiTrack(
                 id = 1,

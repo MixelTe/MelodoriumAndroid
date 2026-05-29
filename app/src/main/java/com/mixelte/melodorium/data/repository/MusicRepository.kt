@@ -121,7 +121,6 @@ class MusicRepository(
 
                 _tags.value = loadedFiles
                     .flatMap { it.tags }
-                    .filter { it.isNotEmpty() }
                     .distinct()
                     .sortedWith(String.CASE_INSENSITIVE_ORDER)
 

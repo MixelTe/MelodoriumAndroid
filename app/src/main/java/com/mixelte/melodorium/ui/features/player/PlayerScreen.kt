@@ -56,8 +56,9 @@ import com.mixelte.melodorium.R
 import com.mixelte.melodorium.domain.models.MusicLang
 import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
-import com.mixelte.melodorium.ui.common.UiTrack
 import com.mixelte.melodorium.ui.common.TrackArtwork
+import com.mixelte.melodorium.ui.common.UiTrack
+import com.mixelte.melodorium.ui.features.player.components.PlaylistView
 import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -87,7 +88,7 @@ fun PlayerRoute(viewModel: PlayerViewModel, onBackClick: () -> Unit) {
                 onDismissRequest = { showPlaylist = false },
                 sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             ) {
-                PlaylistScreen(
+                PlaylistView(
                     tracks,
                     onBackClick = { showPlaylist = false },
                     onClearQueueClick = { viewModel.clearPlaylist() },

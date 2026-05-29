@@ -2,6 +2,7 @@ package com.mixelte.melodorium.ui.features.wave_settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mixelte.melodorium.cyrillicToLatin
 import com.mixelte.melodorium.domain.FilterState
 import com.mixelte.melodorium.domain.MusicFilterManager
 import com.mixelte.melodorium.domain.models.MusicFile
@@ -10,6 +11,7 @@ import com.mixelte.melodorium.domain.models.MusicLike
 import com.mixelte.melodorium.domain.models.MusicMood
 import com.mixelte.melodorium.toLongHash
 import com.mixelte.melodorium.ui.common.UiTrack
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -21,8 +23,13 @@ data class WaveSettingsUiChip(
     val isSelected: Boolean,
 )
 
+data class ArtistSearchState(
+    val query: String = "",
+    val suggestions: List<String> = emptyList(),
+)
+
 data class WaveSettingsUiState(
-    val authors: List<WaveSettingsUiChip> = emptyList(),
+    val artists: List<WaveSettingsUiChip> = emptyList(),
     val moods: List<WaveSettingsUiChip> = emptyList(),
     val likes: List<WaveSettingsUiChip> = emptyList(),
     val langs: List<WaveSettingsUiChip> = emptyList(),
@@ -37,7 +44,6 @@ data class WaveSettingsUiState(
 class WaveSettingsViewModel(
     private val filterManager: MusicFilterManager,
 ) : ViewModel() {
-
     val filteredTracks = filterManager.filteredFiles.map { files ->
         files.map {
             UiTrack(
@@ -73,9 +79,9 @@ class WaveSettingsViewModel(
                 trackCount = files.size,
                 error = error,
                 isLoading = isLoading,
-                authors = authors.map {
+                artists = authors.map {
                     WaveSettingsUiChip(
-                        it.lowercase(),
+                        it,
                         it,
                         it in state.selectedAuthors
                     )
@@ -104,14 +110,24 @@ class WaveSettingsViewModel(
                 tags = tags.map {
                     WaveSettingsUiChip(
                         it,
-                        it,
+                        if (it == "") "⚪" else it,
                         it in state.selectedTags
                     )
                 },
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), WaveSettingsUiState())
 
-    fun onAuthorToggled(author: String, isSelected: Boolean? = null) = filterManager.toggleAuthor(author, isSelected)
+    private val _artistSearchQuery = MutableStateFlow("")
+    val artistSearchState =
+        combine(_artistSearchQuery, filterManager.authors, filterManager.state) { userQuery, authors, filters ->
+            val query = userQuery.trim().lowercase().cyrillicToLatin()
+            ArtistSearchState(
+                query = userQuery,
+                suggestions = authors.filter { it.lowercase().contains(query) && it !in filters.selectedAuthors },
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ArtistSearchState())
+
+    fun onArtistToggled(artist: String, isSelected: Boolean? = null) = filterManager.toggleAuthor(artist, isSelected)
     fun onMoodToggled(mood: String, isSelected: Boolean? = null) =
         filterManager.toggleMood(MusicMood.valueOf(mood), isSelected)
 
@@ -125,4 +141,8 @@ class WaveSettingsViewModel(
     fun onTagToggled(tag: String, isSelected: Boolean? = null) = filterManager.toggleTag(tag, isSelected)
 
     fun clearFilters() = filterManager.reset()
+
+    fun onArtistSearchQueryChanged(newQuery: String) {
+        _artistSearchQuery.value = newQuery
+    }
 }

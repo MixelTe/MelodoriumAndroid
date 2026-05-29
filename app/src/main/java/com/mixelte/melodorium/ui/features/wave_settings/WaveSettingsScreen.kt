@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mixelte.melodorium.R
 import com.mixelte.melodorium.ui.common.TrackList
 import com.mixelte.melodorium.ui.features.wave_settings.components.ChipsRow
+import com.mixelte.melodorium.ui.features.wave_settings.components.SelectArtistsView
 import com.mixelte.melodorium.ui.features.wave_settings.components.SettingsSection
 import com.mixelte.melodorium.ui.theme.Tomato
 
@@ -53,8 +54,10 @@ import com.mixelte.melodorium.ui.theme.Tomato
 @Composable
 fun WaveSettingsRoute(viewModel: WaveSettingsViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val artistSearchState by viewModel.artistSearchState.collectAsStateWithLifecycle()
     val filteredTracks by viewModel.filteredTracks.collectAsStateWithLifecycle()
     var showPlaylist by rememberSaveable { mutableStateOf(false) }
+    var showSelectArtists by rememberSaveable { mutableStateOf(false) }
 
     fun toggleSection(value: Boolean, items: List<WaveSettingsUiChip>, toggle: (String, Boolean?) -> Unit) {
         items.forEach { toggle(it.id, value) }
@@ -66,23 +69,23 @@ fun WaveSettingsRoute(viewModel: WaveSettingsViewModel) {
             openMenu = {},
             clearFilters = { viewModel.clearFilters() },
             openList = { showPlaylist = true },
-            toggleAuthor = viewModel::onAuthorToggled,
+            openSelectArtists = { showSelectArtists = true },
+            toggleArtist = viewModel::onArtistToggled,
             toggleMood = viewModel::onMoodToggled,
             toggleLike = viewModel::onLikeToggled,
             toggleLang = viewModel::onLangToggled,
             toggleTag = viewModel::onTagToggled,
-            clearAuthor = { toggleSection(false, uiState.authors, viewModel::onAuthorToggled) },
+            clearArtist = { toggleSection(false, uiState.artists, viewModel::onArtistToggled) },
             clearMood = { toggleSection(false, uiState.moods, viewModel::onMoodToggled) },
             clearLike = { toggleSection(false, uiState.likes, viewModel::onLikeToggled) },
             clearLang = { toggleSection(false, uiState.langs, viewModel::onLangToggled) },
             clearTag = { toggleSection(false, uiState.tags, viewModel::onTagToggled) },
-            selectAllAuthor = { toggleSection(true,uiState.authors, viewModel::onAuthorToggled) },
-            selectAllMood = { toggleSection(true,uiState.moods, viewModel::onMoodToggled) },
-            selectAllLike = { toggleSection(true,uiState.likes, viewModel::onLikeToggled) },
-            selectAllLang = { toggleSection(true,uiState.langs, viewModel::onLangToggled) },
-            selectAllTag = { toggleSection(true,uiState.tags, viewModel::onTagToggled) },
+            selectAllArtist = { toggleSection(true, uiState.artists, viewModel::onArtistToggled) },
+            selectAllMood = { toggleSection(true, uiState.moods, viewModel::onMoodToggled) },
+            selectAllLike = { toggleSection(true, uiState.likes, viewModel::onLikeToggled) },
+            selectAllLang = { toggleSection(true, uiState.langs, viewModel::onLangToggled) },
+            selectAllTag = { toggleSection(true, uiState.tags, viewModel::onTagToggled) },
         )
-
 
         if (showPlaylist) {
             ModalBottomSheet(
@@ -90,6 +93,21 @@ fun WaveSettingsRoute(viewModel: WaveSettingsViewModel) {
                 sheetState = rememberModalBottomSheetState()
             ) {
                 TrackList(filteredTracks)
+            }
+        }
+
+        if (showSelectArtists) {
+            ModalBottomSheet(
+                onDismissRequest = { showSelectArtists = false },
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ) {
+                SelectArtistsView(
+                    artistSearchState = artistSearchState,
+                    onSearchQueryChanged = viewModel::onArtistSearchQueryChanged,
+                    artists = uiState.artists,
+                    clearArtist = { toggleSection(false, uiState.artists, viewModel::onArtistToggled) },
+                    onArtistToggled = viewModel::onArtistToggled
+                )
             }
         }
     }
@@ -102,17 +120,18 @@ fun WaveSettingsScreen(
     openMenu: () -> Unit,
     clearFilters: () -> Unit,
     openList: () -> Unit,
-    toggleAuthor: (String, Boolean?) -> Unit,
+    openSelectArtists: () -> Unit,
+    toggleArtist: (String, Boolean?) -> Unit,
     toggleMood: (String) -> Unit,
     toggleLike: (String) -> Unit,
     toggleLang: (String) -> Unit,
     toggleTag: (String) -> Unit,
-    clearAuthor: () -> Unit,
+    clearArtist: () -> Unit,
     clearMood: () -> Unit,
     clearLike: () -> Unit,
     clearLang: () -> Unit,
     clearTag: () -> Unit,
-    selectAllAuthor: () -> Unit,
+    selectAllArtist: () -> Unit,
     selectAllMood: () -> Unit,
     selectAllLike: () -> Unit,
     selectAllLang: () -> Unit,
@@ -177,13 +196,13 @@ fun WaveSettingsScreen(
                 ChipsRow(items = state.tags, toggle = toggleTag)
             }
 
-            SettingsSection(title = "Исполнитель", onClearClick = clearAuthor, onSelectAllClick = selectAllAuthor) {
+            SettingsSection(title = "Исполнитель", onClearClick = clearArtist, onSelectAllClick = selectAllArtist) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { /* TODO */ }) {
+                    IconButton(onClick = openSelectArtists) {
                         Icon(
                             Icons.Default.AddCircleOutline,
                             contentDescription = "Добавить",
@@ -195,11 +214,11 @@ fun WaveSettingsScreen(
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        state.authors.filter { it.isSelected }.forEach { author ->
+                        state.artists.filter { it.isSelected }.forEach { artist ->
                             InputChip(
                                 selected = true,
-                                onClick = { toggleAuthor(author.text, false) },
-                                label = { Text(author.text) },
+                                onClick = { toggleArtist(artist.text, false) },
+                                label = { Text(artist.text) },
                                 trailingIcon = {
                                     Icon(
                                         Icons.Default.Close,
@@ -268,11 +287,11 @@ fun SettingsScreenPreview() {
             moods = moods.map { WaveSettingsUiChip(it, it, it in selectedMoods) },
             likes = likes.map { WaveSettingsUiChip(it, it, it in selectedLikes) },
             langs = langs.map { WaveSettingsUiChip(it, it, it in selectedLangs) },
-            authors = artists.map { WaveSettingsUiChip(it, it, it in selectedArtists) },
+            artists = artists.map { WaveSettingsUiChip(it, it, it in selectedArtists) },
             tags = tags.map { WaveSettingsUiChip(it, it, it in selectedTags) },
             trackCount = 435,
             isLoading = false,
 //            error = "123",
-        ), {}, {}, {}, { _, _ -> }, { }, { }, { }, { }, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
+        ), {}, {}, {}, {}, { _, _ -> }, { }, { }, { }, { }, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
     )
 }
