@@ -31,9 +31,9 @@ class LibraryViewModel(
 
     val tracks = combine(musicRepository.files, query) { files, query ->
         val query = query.trim().lowercase().cyrillicToLatin()
-        files.filter {
+        files?.filter {
             query.isEmpty() || it.nameNorm.contains(query) || it.authorNorm.contains(query)
-        }.map {
+        }?.map {
             UiTrack(
                 id = it.rpath.toLongHash(),
                 rpath = it.rpath,
@@ -47,7 +47,7 @@ class LibraryViewModel(
                 artwork = it.artworkFile,
                 isPlaying = false,
             )
-        }
+        } ?: emptyList()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setQuery(query: String) {
@@ -61,7 +61,7 @@ class LibraryViewModel(
 
     fun addTrackToQueue(track: UiTrack) {
         viewModelScope.launch {
-            val musicFile = musicRepository.files.value.find {
+            val musicFile = musicRepository.files.value?.find {
                 it.rpath.toLongHash() == track.id
             }
 

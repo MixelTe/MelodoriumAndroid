@@ -26,7 +26,6 @@ class PlayerViewModel(
 ) : ViewModel() {
     private val playlist = playbackManager.playlist
     private val currentTrack = playbackManager.currentItem
-    private val currentArtwork = playbackManager.currentItemArtwork
     private val currentPosition = playbackManager.currentPosition
     private val duration = playbackManager.duration
     private val isPlaying = playbackManager.isPlaying
@@ -38,9 +37,8 @@ class PlayerViewModel(
             currentTrack,
             isPlaying,
             currentPosition,
-            duration,
-            currentArtwork
-        ) { track, isPlaying, currentPosition, duration, trackArtwork ->
+            duration
+        ) { track, isPlaying, currentPosition, duration ->
             val progress = if (duration > 0) currentPosition.toFloat() / duration else 0F
             PlayerUiState(
                 track = track?.let {
@@ -53,7 +51,7 @@ class PlayerViewModel(
                         it.file.lang,
                         it.file.emo,
                         it.file.publicEnum,
-                        it.file.artworkFile ?: trackArtwork,
+                        it.file.artworkFile,
                         isPlaying
                     )
                 },
@@ -63,7 +61,7 @@ class PlayerViewModel(
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PlayerUiState())
 
-    val tracks = combine(playlist, currentTrack, currentArtwork) { items, currentTrack, _ ->
+    val tracks = combine(playlist, currentTrack) { items, currentTrack ->
         items?.map {
             UiTrack(
                 it.id,

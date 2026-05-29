@@ -8,13 +8,13 @@ import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import com.mixelte.melodorium.data.db.AppDatabase
 import com.mixelte.melodorium.data.db.CurrentPlaylistEntity
-import com.mixelte.melodorium.data.db.FileDao
 import com.mixelte.melodorium.data.db.FileEntity
 import com.mixelte.melodorium.data.db.PlaybackStateEntity
 import com.mixelte.melodorium.domain.models.MusicDatafile
 import com.mixelte.melodorium.domain.models.MusicFile
 import com.mixelte.melodorium.domain.models.MusicFileData
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,14 +34,15 @@ data class PlaylistEntry(
 )
 
 class MusicRepository(
-    private val context: Context,
+    context: Context,
     private val database: AppDatabase
 ) {
+    private val context = context.applicationContext
     private val fileDao = database.fileDao()
     private val playlistDao = database.playlistDao()
 
-    private val _files = MutableStateFlow<List<MusicFile>>(emptyList())
-    val files: StateFlow<List<MusicFile>> = _files.asStateFlow()
+    private val _files = MutableStateFlow<List<MusicFile>?>(null)
+    val files: StateFlow<List<MusicFile>?> = _files.asStateFlow()
 
     private val _folders = MutableStateFlow<List<String>>(emptyList())
     val folders: StateFlow<List<String>> = _folders.asStateFlow()
@@ -59,13 +60,14 @@ class MusicRepository(
     val error: StateFlow<String?> = _error.asStateFlow()
 
     val currentPlaylist: Flow<List<PlaylistEntry>> =
-        combine(playlistDao.getCurrentPlaylistFlow(), _files, _isLoading) { entities, allFiles, isLoading ->
-            Triple(entities, allFiles, isLoading)
+        combine(playlistDao.getCurrentPlaylistFlow(), _files) { entities, allFiles ->
+            Pair(entities, allFiles)
         }
-            .filter { (_, _, isLoading) -> !isLoading }
-            .map { (entities, allFiles, _) ->
+            .filter { (_, files) -> files != null }
+            .map { (entities, allFiles) ->
+                val filesMap = allFiles!!.associateBy { it.rpath }
                 entities.mapNotNull { entity ->
-                    val file = allFiles.find { it.rpath == entity.rpath }
+                    val file = filesMap[entity.rpath]
                     file?.let { PlaylistEntry(entity.id, it) }
                 }
             }
@@ -105,35 +107,34 @@ class MusicRepository(
                 val obj = jsonParser.decodeFromString(MusicDatafile.serializer(), lines)
                 obj.Files.forEach { it.RPath = it.RPath.replace("\\", "/") }
 
-                val fileDao = database.fileDao()
                 val cachedFiles = fileDao.getAll()
                 if (clearCache) {
                     context.filesDir.resolve("artworks").deleteRecursively()
+                    fileDao.deleteAll()
                 }
 
                 val loadedFiles = if (cachedFiles.isNotEmpty() && !clearCache) {
                     loadFromCache(cachedFiles, obj.Files)
                 } else {
-                    loadFromSystemAndCache(fileDao, rootFolderUri, obj.Files)
+                    loadFromSystemAndCache(cachedFiles, rootFolderUri, obj.Files)
                 }
 
                 _files.value = loadedFiles.sortedBy { it.rpath }
 
-                _tags.value = loadedFiles
-                    .flatMap { it.tags }
-                    .distinct()
-                    .sortedWith(String.CASE_INSENSITIVE_ORDER)
+                val tagsDeferred = async(Dispatchers.Default) {
+                    loadedFiles.flatMap { it.tags }.distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)
+                }
+                val foldersDeferred = async(Dispatchers.Default) {
+                    loadedFiles.map { it.folder.replace('_', ' ') }.distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)
+                }
+                val authorsDeferred = async(Dispatchers.Default) {
+                    loadedFiles.map { it.author }.filter { it.isNotEmpty() }.distinct()
+                        .sortedWith(String.CASE_INSENSITIVE_ORDER)
+                }
 
-                _folders.value = loadedFiles
-                    .map { it.folder.replace('_', ' ') }
-                    .distinct()
-                    .sortedWith(String.CASE_INSENSITIVE_ORDER)
-
-                _authors.value = loadedFiles
-                    .map { it.author }
-                    .filter { it.isNotEmpty() }
-                    .distinct()
-                    .sortedWith(String.CASE_INSENSITIVE_ORDER)
+                _tags.value = tagsDeferred.await()
+                _folders.value = foldersDeferred.await()
+                _authors.value = authorsDeferred.await()
 
             } catch (e: Exception) {
                 _error.value = e.localizedMessage ?: e.toString()
@@ -146,30 +147,36 @@ class MusicRepository(
         filesCache: List<FileEntity>,
         musicData: List<MusicFileData>
     ): List<MusicFile> {
+        val musicDataMap = musicData.associateBy { it.RPath }
         return filesCache.mapNotNull { cached ->
-            val data = musicData.find { it.RPath == cached.rpath }
+            val data = musicDataMap[cached.rpath]
             if (data?.IsLoaded == true) {
                 val artFile = cached.artworkPath?.let { File(it) }
-                MusicFile(data, cached.uri.toUri(), artFile)
+                MusicFile.create(data, cached.uri.toUri(), artFile)
             } else null
         }
     }
 
     private suspend fun loadFromSystemAndCache(
-        fileDao: FileDao,
+        cachedFiles: List<FileEntity>,
         rootUri: Uri,
-        musicData: List<MusicFileData>
+        musicData: List<MusicFileData>,
     ): List<MusicFile> = withContext(Dispatchers.IO) {
+        val musicDataMap = musicData.associateBy { it.RPath }
+        val oldFilesMap = cachedFiles.associateBy { it.rpath }
+
         val files = mutableListOf<MusicFile>()
         val cache = mutableListOf<FileEntity>()
         val contentResolver = context.contentResolver
 
-        val dirNodes = mutableListOf(
-            "" to DocumentsContract.buildChildDocumentsUriUsingTree(
-                rootUri,
-                DocumentsContract.getTreeDocumentId(rootUri)
+        val dirNodes = ArrayDeque<Pair<String, Uri>>().apply {
+            add(
+                "" to DocumentsContract.buildChildDocumentsUriUsingTree(
+                    rootUri,
+                    DocumentsContract.getTreeDocumentId(rootUri)
+                )
             )
-        )
+        }
 
         val projection = arrayOf(
             DocumentsContract.Document.COLUMN_DOCUMENT_ID,
@@ -178,7 +185,7 @@ class MusicRepository(
         )
 
         while (dirNodes.isNotEmpty()) {
-            val (path, dirUri) = dirNodes.removeAt(0)
+            val (path, dirUri) = dirNodes.removeFirstOrNull() ?: break
 
             contentResolver.query(dirUri, projection, null, null, null)?.use { cursor ->
                 val idIndex = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
@@ -200,20 +207,33 @@ class MusicRepository(
                         )
                     } else {
                         val relPath = if (path.isEmpty()) name else "$path/$name"
-                        val data = musicData.find { it.RPath == relPath }
+                        val data = musicDataMap[relPath]
                         if (data?.IsLoaded == true) {
                             val uri = DocumentsContract.buildDocumentUriUsingTree(rootUri, docId)
 
-                            files.add(MusicFile(data, uri))
-                            cache.add(FileEntity(id = 0, rpath = relPath, uri = uri.toString()))
+                            val existingArtworkPath = oldFilesMap[relPath]?.artworkPath
+                            val artFile = existingArtworkPath?.let { File(it) }
+
+                            files.add(MusicFile.create(data, uri, artFile))
+                            cache.add(
+                                FileEntity(
+                                    rpath = relPath,
+                                    uri = uri.toString(),
+                                    artworkPath = existingArtworkPath
+                                )
+                            )
                         }
                     }
                 }
             }
         }
 
-        fileDao.deleteAll()
-        fileDao.insertAll(cache)
+        val newFilesMap = cache.associateBy { it.rpath }
+        val toDelete = cachedFiles.filter { it.rpath !in newFilesMap }
+        val toAdd = cache.filter { it.rpath !in oldFilesMap || oldFilesMap[it.rpath]?.uri != it.uri }
+
+        if (toDelete.isNotEmpty()) fileDao.deleteMultiple(toDelete)
+        if (toAdd.isNotEmpty()) fileDao.insertAll(toAdd)
 
         return@withContext files
     }
@@ -227,7 +247,15 @@ class MusicRepository(
 
         if (extractedPath != null) {
             fileDao.updateArtworkPath(musicFile.rpath, extractedPath)
-            musicFile.artworkFile = File(extractedPath)
+
+            _files.value?.let { currentFiles ->
+                val index = currentFiles.indexOfFirst { it.rpath == musicFile.rpath }
+                if (index != -1) {
+                    val mutableList = currentFiles.toMutableList()
+                    mutableList[index] = mutableList[index].copy(artworkFile = File(extractedPath))
+                    _files.value = mutableList
+                }
+            }
         }
 
         return@withContext extractedPath?.let { File(it) }
@@ -255,7 +283,10 @@ class MusicRepository(
         } catch (e: Exception) {
             e.printStackTrace()
         } finally {
-            retriever.release()
+            try {
+                retriever.release()
+            } catch (_: Exception) {
+            }
         }
         return null
     }

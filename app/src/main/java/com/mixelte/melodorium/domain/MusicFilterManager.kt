@@ -40,7 +40,7 @@ class MusicFilterManager(
         musicRepository.files,
         _state
     ) { files, filters ->
-        if (files.isEmpty()) return@combine emptyList()
+        if (files.isNullOrEmpty()) return@combine emptyList()
         val authorLower = filters.authorQuery.lowercase()
         val nameLower = filters.nameQuery.lowercase()
 
@@ -59,7 +59,7 @@ class MusicFilterManager(
     }
 
     val error = combine(isLoading, musicRepository.files, musicRepository.error) { isLoading, files, error ->
-        error ?: if (!isLoading && files.isEmpty()) "Выберите файлы в настройках" else null
+        error ?: if (!isLoading && files == null) "Выберите файлы в настройках" else null
     }
 
 

@@ -15,12 +15,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.io.File
 
 class PlaybackManager(
     private val musicRepository: MusicRepository,
@@ -35,9 +33,6 @@ class PlaybackManager(
 
     private val _currentItem = MutableStateFlow<PlaylistEntry?>(null)
     val currentItem = _currentItem.asStateFlow()
-
-    private val _currentItemArtwork = MutableStateFlow<File?>(null)
-    val currentItemArtwork: StateFlow<File?> = _currentItemArtwork.asStateFlow()
 
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying = _isPlaying.asStateFlow()
@@ -69,6 +64,7 @@ class PlaybackManager(
         playlistSyncJob = scope.launch {
             musicRepository.currentPlaylist.collectLatest { dbPlaylist ->
                 _playlist.value = dbPlaylist
+                _currentItem.value = _currentItem.value?.id?.let { id -> dbPlaylist.find { it.id == id } }
 
                 mediaController?.let { controller ->
                     val mediaItems = dbPlaylist.map {
@@ -209,9 +205,9 @@ class PlaybackManager(
     fun prev() = mediaController?.seekToPreviousMediaItem()
 
     private fun startProgressTimer() {
-        if (progressJob?.isActive == true) return
-
+        progressJob?.cancel()
         progressJob = scope.launch {
+            var counter = 0
             while (this.isActive) {
                 mediaController?.let { controller ->
                     val pos = controller.currentPosition.coerceAtLeast(0L)
@@ -220,7 +216,9 @@ class PlaybackManager(
                         _duration.value = controller.duration.coerceAtLeast(0L)
                     }
 
-                    if (controller.isPlaying && _currentItem.value != null) {
+                    counter++
+                    if (counter >= 20 && controller.isPlaying && _currentItem.value != null) {
+                        counter = 0
                         musicRepository.updatePlaybackState(
                             rpath = _currentItem.value?.file?.rpath,
                             positionMs = pos,
@@ -258,10 +256,9 @@ class PlaybackManager(
                 isPlaying = _isPlaying.value
             )
 
-            val a = newCurrent?.let {
+            newCurrent?.let {
                 musicRepository.getArtworkFile(it.file)
             }
-            _currentItemArtwork.value = a
         }
     }
 
